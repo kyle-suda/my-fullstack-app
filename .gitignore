@@ -1,0 +1,24 @@
+# dependencies
+**/node_modules
+
+# env / secrets
+**/.env
+**/.env.*
+!.env.example
+
+# prisma local db + generated stuff
+**/dev.db
+**/*.db
+**/prisma/migrations
+
+# build output
+**/dist
+**/build
+
+# logs
+**/*.log
+
+# OS / editor
+.DS_Store
+.vscode
+.idea
