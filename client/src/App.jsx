@@ -190,26 +190,9 @@ function fmtOdds(prob) {
   const o = toAmericanOdds(prob);
   return o > 0 ? `+${o}` : `${o}`;
 }
-function fmtOddsRaw(o) {
-  const n = parseInt(o);
-  if (!o || isNaN(n)) return null;
-  return n > 0 ? `+${n}` : `${n}`;
-}
-// Strip vig from two-sided American odds, return fair implied probabilities
-function vigAdjustedProbs(rOdds, bOdds) {
-  function implied(o) { return o < 0 ? (-o) / (-o + 100) : 100 / (o + 100); }
-  const pr = implied(rOdds), pb = implied(bOdds), tot = pr + pb;
-  return { r: pr / tot, b: pb / tot };
-}
-// Quarter-Kelly bet size given model probability and book decimal odds
-function kellyQuarter(modelProb, americanOdds) {
-  const dec = americanOdds > 0 ? americanOdds / 100 + 1 : 100 / (-americanOdds) + 1;
-  const k = (modelProb * dec - 1) / (dec - 1);
-  return Math.max(0, k * 0.25 * 100);
-}
 
 /* ─── Compact Sportsbook-Style Fight Card ────────────────────────────────── */
-function FightCard({ fight, idx, isMobile, bookR, bookB }) {
+function FightCard({ fight, idx, isMobile }) {
   const R = "#ef4444", B = "#3b82f6";
 
   if (fight.error) {
@@ -224,18 +207,6 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
   const rPct = fight.red_win_probability ?? 50;
   const bPct = fight.blue_win_probability ?? 50;
 
-  // Book odds edge (computed client-side from entered sportsbook odds)
-  const hasBook = bookR && bookB && !isNaN(bookR) && !isNaN(bookB);
-  let bookEdge = null;
-  if (hasBook) {
-    const { r: bkRProb, b: bkBProb } = vigAdjustedProbs(bookR, bookB);
-    bookEdge = {
-      r: (rPct / 100 - bkRProb) * 100,
-      b: (bPct / 100 - bkBProb) * 100,
-    };
-  }
-  const hasValueBet = hasBook && (bookEdge.r >= 5 || bookEdge.b >= 5);
-
   const methodOrder = ["KO/TKO", "Submission", "Decision", "Other/No Contest"];
   const methodProbs = fight.method_probs || {};
   const shownMethods = methodOrder.filter((m) => (methodProbs[m] ?? 0) > 1);
@@ -246,17 +217,13 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
       background: fight.is_main_event
         ? "linear-gradient(135deg, rgba(239,68,68,0.08), rgba(6,8,16,0.0) 55%, rgba(59,130,246,0.06))"
         : "rgba(255,255,255,0.033)",
-      border: hasValueBet
-        ? "1px solid rgba(34,197,94,0.35)"
-        : fight.is_main_event ? "1px solid rgba(239,68,68,0.26)" : "1px solid rgba(255,255,255,0.08)",
+      border: fight.is_main_event ? "1px solid rgba(239,68,68,0.26)" : "1px solid rgba(255,255,255,0.08)",
       animation: `fiup 360ms ease ${idx * 55}ms both`,
     }}>
 
-      {/* ── Top bar: badges + value ── */}
+      {/* ── Top bar: badges ── */}
       <div style={{
-        padding: "8px 14px",
-        background: "rgba(0,0,0,0.22)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        padding: "8px 14px", background: "rgba(0,0,0,0.22)", borderBottom: "1px solid rgba(255,255,255,0.06)",
         display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
       }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -264,23 +231,16 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
           {fight.is_title_fight && <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 900, background: "linear-gradient(90deg,#f59e0b,#d97706)", color: "#fff" }}>🏆 TITLE</span>}
           <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.50)" }}>{fight.weight_class}</span>
         </div>
-        {hasValueBet && (
-          <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 11, fontWeight: 900, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", color: "#22c55e", animation: "pulse 2s ease infinite" }}>
-            📈 BET RECOMMENDED
-          </span>
-        )}
       </div>
 
-      {/* ── Main betting layout ── */}
+      {/* ── Main layout ── */}
       <div style={{ padding: isMobile ? "12px 14px" : "14px 18px", display: "grid", gap: 10 }}>
 
-        {/* Fighter names row */}
+        {/* Fighter names */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: winRed ? R : "#e8eef6" }}>
-                {fight.red_fighter}
-              </span>
+              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: winRed ? R : "#e8eef6" }}>{fight.red_fighter}</span>
               {winRed && <span style={{ fontSize: 10, fontWeight: 900, color: R, background: `${R}1a`, border: `1px solid ${R}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
             </div>
             {fight.r_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2 }}>Elo {fight.r_elo}</div>}
@@ -289,89 +249,34 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
           <div style={{ textAlign: "right" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 7 }}>
               {!winRed && <span style={{ fontSize: 10, fontWeight: 900, color: B, background: `${B}1a`, border: `1px solid ${B}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
-              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: !winRed ? B : "#e8eef6" }}>
-                {fight.blue_fighter}
-              </span>
+              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: !winRed ? B : "#e8eef6" }}>{fight.blue_fighter}</span>
             </div>
             {fight.b_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2, textAlign: "right" }}>Elo {fight.b_elo}</div>}
           </div>
         </div>
 
-        {/* Odds comparison: MODEL vs HARDROCK */}
+        {/* Odds + probability bar */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "center", gap: 6 }}>
-          {/* Red odds block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {/* MODEL */}
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.28)", marginBottom: 1 }}>MODEL</div>
-              <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 1000, color: R, letterSpacing: -1, lineHeight: 1 }}>
-                {fmtOdds(rPct / 100)}
-              </div>
-              <div style={{ fontSize: 11, color: R, fontWeight: 700, opacity: 0.7 }}>{rPct.toFixed(1)}% win</div>
-            </div>
-            {/* HARDROCK */}
-            {hasBook && (
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 4 }}>
-                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1, color: "rgba(255,165,0,0.7)", marginBottom: 1 }}>HARDROCK</div>
-                <div style={{ fontSize: isMobile ? 18 : 21, fontWeight: 1000, color: "#fb923c", letterSpacing: -0.5, lineHeight: 1 }}>
-                  {fmtOddsRaw(bookR)}
-                </div>
-                {bookEdge.r >= 5 && (
-                  <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 900, marginTop: 2 }}>+{bookEdge.r.toFixed(1)}% edge ✓</div>
-                )}
-                {bookEdge.r < 0 && (
-                  <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700, opacity: 0.7, marginTop: 2 }}>{bookEdge.r.toFixed(1)}% overpriced</div>
-                )}
-              </div>
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: R, letterSpacing: -1, lineHeight: 1 }}>{fmtOdds(rPct / 100)}</div>
+            <div style={{ fontSize: 11, color: R, fontWeight: 700, opacity: 0.7 }}>{rPct.toFixed(1)}% win</div>
           </div>
-
-          {/* Center probability bar */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
             <div style={{ width: "100%", height: 10, borderRadius: 99, background: "rgba(255,255,255,0.07)", overflow: "hidden", position: "relative" }}>
               <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${rPct}%`, background: `linear-gradient(90deg, ${R}cc, ${R}88)`, borderRadius: "99px 0 0 99px" }} />
               <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: `${bPct}%`, background: `linear-gradient(270deg, ${B}cc, ${B}88)`, borderRadius: "0 99px 99px 0" }} />
             </div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 700 }}>
-              {hasBook ? "MODEL PROBABILITY" : "WIN PROBABILITY"}
-            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 700 }}>WIN PROBABILITY</div>
           </div>
-
-          {/* Blue odds block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-            {/* MODEL */}
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.28)", marginBottom: 1 }}>MODEL</div>
-              <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 1000, color: B, letterSpacing: -1, lineHeight: 1 }}>
-                {fmtOdds(bPct / 100)}
-              </div>
-              <div style={{ fontSize: 11, color: B, fontWeight: 700, opacity: 0.7 }}>{bPct.toFixed(1)}% win</div>
-            </div>
-            {/* HARDROCK */}
-            {hasBook && (
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 4, textAlign: "right" }}>
-                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1, color: "rgba(255,165,0,0.7)", marginBottom: 1 }}>HARDROCK</div>
-                <div style={{ fontSize: isMobile ? 18 : 21, fontWeight: 1000, color: "#fb923c", letterSpacing: -0.5, lineHeight: 1 }}>
-                  {fmtOddsRaw(bookB)}
-                </div>
-                {bookEdge.b >= 5 && (
-                  <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 900, marginTop: 2 }}>✓ +{bookEdge.b.toFixed(1)}% edge</div>
-                )}
-                {bookEdge.b < 0 && (
-                  <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700, opacity: 0.7, marginTop: 2 }}>{bookEdge.b.toFixed(1)}% overpriced</div>
-                )}
-              </div>
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: B, letterSpacing: -1, lineHeight: 1 }}>{fmtOdds(bPct / 100)}</div>
+            <div style={{ fontSize: 11, color: B, fontWeight: 700, opacity: 0.7 }}>{bPct.toFixed(1)}% win</div>
           </div>
         </div>
 
-        {/* Method + finish line */}
+        {/* Method + finish */}
         {(shownMethods.length > 0 || fight.predicted_method) && (
-          <div style={{
-            paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)",
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            flexWrap: "wrap", gap: 8,
-          }}>
+          <div style={{ paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
               {shownMethods.map((m) => (
                 <span key={m} style={{ padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 800, background: `${MC[m]}18`, border: `1px solid ${MC[m]}35`, color: MC[m] }}>
@@ -390,62 +295,6 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ─── Per-fight odds entry panel ─────────────────────────────────────────── */
-function OddsInputPanel({ redName, blueName, bookR, bookB, onChangeR, onChangeB, isAuto }) {
-  const [open, setOpen] = useState(false);
-  const inp = {
-    width: "100%", padding: "8px 10px", borderRadius: 10,
-    border: "1px solid rgba(255,165,0,0.25)", background: "rgba(255,165,0,0.07)",
-    color: "#fb923c", outline: "none", fontSize: 15, fontWeight: 900,
-    textAlign: "center", boxSizing: "border-box",
-  };
-  const hasOdds = bookR || bookB;
-  return (
-    <div style={{ borderRadius: "0 0 16px 16px", background: isAuto ? "rgba(34,197,94,0.04)" : "rgba(255,165,0,0.04)", border: isAuto ? "1px solid rgba(34,197,94,0.18)" : "1px solid rgba(255,165,0,0.12)", borderTop: "none", overflow: "hidden" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{ width: "100%", padding: "7px 14px", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: isAuto ? "rgba(34,197,94,0.75)" : "rgba(255,165,0,0.7)", fontSize: 11, fontWeight: 900, letterSpacing: 0.4 }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {isAuto ? (
-            <><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            HARDROCK ODDS — Live auto-loaded · Click to override</>
-          ) : hasOdds ? (
-            <>🎰 HARDROCK ODDS — Manual · Click to edit</>
-          ) : (
-            <>🎰 ENTER HARDROCK ODDS</>
-          )}
-        </span>
-        <span style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms", fontSize: 9 }}>▼</span>
-      </button>
-      {open && (
-        <div style={{ padding: "10px 14px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 900, color: "#ef4444", letterSpacing: 1, marginBottom: 4 }}>🔴 {redName.split(" ").slice(-1)[0].toUpperCase()}</div>
-            <input
-              type="text" inputMode="numeric" value={bookR}
-              onChange={(e) => onChangeR(e.target.value)}
-              placeholder="-180" style={{ ...inp, borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.07)", color: "#ef4444" }}
-            />
-          </div>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 900, color: "#3b82f6", letterSpacing: 1, marginBottom: 4 }}>{blueName.split(" ").slice(-1)[0].toUpperCase()} 🔵</div>
-            <input
-              type="text" inputMode="numeric" value={bookB}
-              onChange={(e) => onChangeB(e.target.value)}
-              placeholder="+155" style={{ ...inp, borderColor: "rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.07)", color: "#3b82f6" }}
-            />
-          </div>
-          <div style={{ gridColumn: "1/-1", fontSize: 10, color: "rgba(255,255,255,0.28)", textAlign: "center" }}>
-            {isAuto ? "Odds auto-loaded from Hardrock. Edit to override." : "Favorite = negative (−180), Underdog = positive (+155)"}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -525,158 +374,11 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
   );
 }
 
-/* ─── Recommended Bets Banner ────────────────────────────────────────────── */
-function RecommendedBets({ fights, bookOdds, isMobile }) {
-  const recs = (fights || []).flatMap((fight) => {
-    const key = `${fight.red_fighter}|${fight.blue_fighter}`;
-    const bo = bookOdds[key];
-    if (!bo) return [];
-    const rOdds = parseInt(bo.r), bOdds = parseInt(bo.b);
-    if (isNaN(rOdds) || isNaN(bOdds)) return [];
-    const { r: bkR, b: bkB } = vigAdjustedProbs(rOdds, bOdds);
-    const rPct = (fight.red_win_probability ?? 50) / 100;
-    const bPct = (fight.blue_win_probability ?? 50) / 100;
-    const rEdge = (rPct - bkR) * 100;
-    const bEdge = (bPct - bkB) * 100;
-    const picks = [];
-    if (rEdge >= 5) picks.push({
-      fighter: fight.red_fighter, opponent: fight.blue_fighter,
-      edge: rEdge, bookOdds: fmtOddsRaw(rOdds), modelOdds: fmtOdds(rPct),
-      kelly: kellyQuarter(rPct, rOdds), color: "#ef4444",
-    });
-    if (bEdge >= 5) picks.push({
-      fighter: fight.blue_fighter, opponent: fight.red_fighter,
-      edge: bEdge, bookOdds: fmtOddsRaw(bOdds), modelOdds: fmtOdds(bPct),
-      kelly: kellyQuarter(bPct, bOdds), color: "#3b82f6",
-    });
-    return picks;
-  }).sort((a, b) => b.edge - a.edge);
-
-  if (recs.length === 0) return null;
-
-  return (
-    <div style={{
-      borderRadius: 16, overflow: "hidden",
-      border: "1px solid rgba(34,197,94,0.35)",
-      background: "linear-gradient(135deg, rgba(34,197,94,0.07), rgba(6,8,16,0) 70%)",
-      animation: "fiup 300ms ease both",
-    }}>
-      <div style={{
-        padding: "10px 16px", background: "rgba(34,197,94,0.1)", borderBottom: "1px solid rgba(34,197,94,0.2)",
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        <span style={{ fontSize: 14 }}>📈</span>
-        <span style={{ fontWeight: 900, fontSize: 13, color: "#22c55e", letterSpacing: 0.3 }}>
-          RECOMMENDED BETS — {recs.length} value bet{recs.length !== 1 ? "s" : ""} found vs Hardrock
-        </span>
-      </div>
-      <div style={{ padding: "10px 14px", display: "grid", gap: 8 }}>
-        {recs.map((rec) => (
-          <div key={`${rec.fighter}-${rec.opponent}`} style={{
-            display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr 1fr",
-            gap: isMobile ? 4 : 12, alignItems: "center",
-            padding: "10px 12px", borderRadius: 12,
-            background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)",
-          }}>
-            <div>
-              <span style={{ fontWeight: 900, fontSize: 14, color: rec.color }}>{rec.fighter}</span>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", marginLeft: 6 }}>vs {rec.opponent}</span>
-            </div>
-            <div style={{ display: "grid", gap: 1 }}>
-              <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,165,0,0.7)", letterSpacing: 1 }}>HARDROCK</span>
-              <span style={{ fontWeight: 900, fontSize: 16, color: "#fb923c" }}>{rec.bookOdds}</span>
-            </div>
-            <div style={{ display: "grid", gap: 1 }}>
-              <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.28)", letterSpacing: 1 }}>EDGE</span>
-              <span style={{ fontWeight: 900, fontSize: 16, color: "#22c55e" }}>+{rec.edge.toFixed(1)}%</span>
-            </div>
-            <div style={{ display: "grid", gap: 1 }}>
-              <span style={{ fontSize: 9, fontWeight: 900, color: "rgba(255,255,255,0.28)", letterSpacing: 1 }}>¼ KELLY</span>
-              <span style={{ fontWeight: 900, fontSize: 14, color: "#22c55e" }}>{rec.kelly.toFixed(1)}% bankroll</span>
-            </div>
-          </div>
-        ))}
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", textAlign: "center", paddingTop: 4 }}>
-          Edge = model win probability minus Hardrock vig-adjusted implied probability. Bet when edge ≥ 5%.
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Upcoming card view ─────────────────────────────────────────────────── */
 function UpcomingCard({ isMobile }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
-  // Per-fight Hardrock odds: { "Fighter A|Fighter B": { r: "-180", b: "+155", auto: true } }
-  const [bookOdds, setBookOdds] = useState({});
-  const [oddsTimestamp, setOddsTimestamp] = useState(null);
-  const [oddsLive, setOddsLive] = useState(false);
-  const [oddsRefreshing, setOddsRefreshing] = useState(false);
-
-  function setFightOdds(key, side, val) {
-    setBookOdds((prev) => ({ ...prev, [key]: { ...prev[key], [side]: val, auto: false } }));
-  }
-
-  // Auto-populate bookOdds from fight predictions that already have Hardrock odds
-  function applyAutoOdds(predictions) {
-    const auto = {};
-    for (const f of predictions) {
-      if (f.hardrock_r_odds && f.hardrock_b_odds) {
-        const key = `${f.red_fighter}|${f.blue_fighter}`;
-        auto[key] = { r: String(f.hardrock_r_odds), b: String(f.hardrock_b_odds), auto: true };
-      }
-    }
-    // Merge: keep any manually-edited entries, overwrite only untouched auto ones
-    setBookOdds((prev) => {
-      const merged = { ...auto };
-      for (const [k, v] of Object.entries(prev)) {
-        if (!v.auto) merged[k] = v; // preserve manual edits
-      }
-      return merged;
-    });
-  }
-
-  // Lightweight poll: re-fetch Hardrock odds without re-running models
-  async function refreshOdds(fights) {
-    if (!fights?.length) return;
-    setOddsRefreshing(true);
-    try {
-      const r = await fetch(`${UFC_API}/hardrock-odds`, { signal: AbortSignal.timeout(15000) });
-      if (!r.ok) return;
-      const d = await r.json();
-      setOddsLive(d.live);
-      setOddsTimestamp(d.timestamp);
-      if (d.live && d.odds?.length) {
-        // Match returned odds to current fights using last-name fuzzy matching
-        function lastName(n) { return (n || "").split(" ").pop().toLowerCase(); }
-        const updated = {};
-        for (const fight of fights) {
-          const key = `${fight.red_fighter}|${fight.blue_fighter}`;
-          const lRed = lastName(fight.red_fighter), lBlue = lastName(fight.blue_fighter);
-          for (const hro of d.odds) {
-            const lHome = lastName(hro.home), lAway = lastName(hro.away);
-            if (lHome === lRed && lAway === lBlue) {
-              updated[key] = { r: String(hro.home_odds), b: String(hro.away_odds), auto: true };
-              break;
-            } else if (lHome === lBlue && lAway === lRed) {
-              updated[key] = { r: String(hro.away_odds), b: String(hro.home_odds), auto: true };
-              break;
-            }
-          }
-        }
-        setBookOdds((prev) => {
-          const merged = { ...updated };
-          for (const [k, v] of Object.entries(prev)) {
-            if (!v.auto) merged[k] = v; // preserve manual edits
-          }
-          return merged;
-        });
-      }
-    } catch (_) {}
-    finally { setOddsRefreshing(false); }
-  }
 
   async function load() {
     setLoading(true); setErr(null);
@@ -686,22 +388,11 @@ function UpcomingCard({ isMobile }) {
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setData(d);
-      setOddsLive(d.hardrock_live || false);
-      setOddsTimestamp(d.odds_timestamp || null);
-      // Apply any odds that came back with the predictions
-      applyAutoOdds(d.predictions || []);
     } catch (e) { setErr(e.message || "Could not load upcoming card"); }
     finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
-
-  // Poll for odds updates every 5 minutes
-  useEffect(() => {
-    if (!data) return;
-    const id = setInterval(() => refreshOdds(data.predictions), 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [data]);
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "80px 20px", display: "grid", gap: 16, justifyItems: "center" }}>
@@ -754,26 +445,10 @@ function UpcomingCard({ isMobile }) {
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <span style={{ padding: "5px 14px", borderRadius: 99, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.10)", fontSize: 12, fontWeight: 700 }}>
             {data.predictions?.length || 0} Fights
           </span>
-          {/* Live odds badge */}
-          {oddsLive ? (
-            <span style={{
-              padding: "5px 12px", borderRadius: 99, fontSize: 11, fontWeight: 900,
-              background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#22c55e",
-              display: "flex", alignItems: "center", gap: 5,
-            }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 1.5s ease infinite" }} />
-              Live Hardrock Odds
-              {oddsRefreshing && <Icon name="loader" size={12} color="#22c55e" />}
-            </span>
-          ) : (
-            <span style={{ padding: "5px 12px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: "rgba(255,165,0,0.09)", border: "1px solid rgba(255,165,0,0.22)", color: "rgba(255,165,0,0.7)" }}>
-              🎰 Manual odds
-            </span>
-          )}
           <button onClick={load} style={{
             display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 11,
             background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.11)",
@@ -782,65 +457,10 @@ function UpcomingCard({ isMobile }) {
         </div>
       </div>
 
-      {/* Odds status bar */}
-      {oddsLive ? (
-        <div style={{
-          padding: "10px 14px", borderRadius: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
-          background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.18)",
-        }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontSize: 13 }}>🟢</span>
-            <span style={{ fontWeight: 800, fontSize: 12, color: "#22c55e" }}>Live Hardrock odds auto-loaded</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>— updates every 5 min. Override any odds manually below.</span>
-          </div>
-          {oddsTimestamp && (
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", fontWeight: 600 }}>
-              Updated {new Date(oddsTimestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
-        </div>
-      ) : !anyOddsEntered && (
-        <div style={{
-          padding: "12px 16px", borderRadius: 14, display: "flex", gap: 10, alignItems: "center",
-          background: "rgba(255,165,0,0.06)", border: "1px solid rgba(255,165,0,0.18)",
-        }}>
-          <span style={{ fontSize: 18 }}>🎰</span>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,165,0,0.85)" }}>Enter Hardrock odds to find value bets</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>
-              Click <strong style={{ color: "rgba(255,165,0,0.65)" }}>ENTER HARDROCK ODDS</strong> below any fight, type in the American odds from your Hardrock app, and the model instantly compares them.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recommended bets panel — appears as soon as any odds are entered */}
-      {anyOddsEntered && (
-        <RecommendedBets fights={data.predictions} bookOdds={bookOdds} isMobile={isMobile} />
-      )}
-
-      {/* Fight cards + per-fight odds input */}
-      {(data.predictions || []).map((f, i) => {
-        const key = `${f.red_fighter}|${f.blue_fighter}`;
-        const bo = bookOdds[key] || {};
-        const rOdds = bo.r ? parseInt(bo.r) : null;
-        const bOdds = bo.b ? parseInt(bo.b) : null;
-        return (
-          <div key={key}>
-            <FightCard fight={f} idx={i} isMobile={isMobile}
-              bookR={!isNaN(rOdds) ? rOdds : null}
-              bookB={!isNaN(bOdds) ? bOdds : null}
-            />
-            <OddsInputPanel
-              redName={f.red_fighter} blueName={f.blue_fighter}
-              bookR={bo.r || ""} bookB={bo.b || ""}
-              onChangeR={(v) => setFightOdds(key, "r", v)}
-              onChangeB={(v) => setFightOdds(key, "b", v)}
-              isAuto={bo.auto === true}
-            />
-          </div>
-        );
-      })}
+      {/* Fight cards */}
+      {(data.predictions || []).map((f, i) => (
+        <FightCard key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i} isMobile={isMobile} />
+      ))}
     </div>
   );
 }
@@ -944,26 +564,20 @@ function CustomMatchup({ isMobile }) {
           <Toggle on={title} set={setTitle} label={title ? "Yes" : "No"} />
         </div>
         <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 10, color: "rgba(255,165,0,0.75)", fontWeight: 900, letterSpacing: 0.8 }}>🎰 HARDROCK ODDS</label>
-          <Toggle on={showOdds} set={setShowOdds} label={showOdds ? "Enabled" : "Off"} />
+          <label style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 900, letterSpacing: 0.8 }}>INCLUDE ODDS</label>
+          <Toggle on={showOdds} set={setShowOdds} label={showOdds ? "Yes" : "No"} />
         </div>
       </div>
 
       {showOdds && (
-        <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,165,0,0.05)", border: "1px solid rgba(255,165,0,0.22)", display: "grid", gap: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,165,0,0.75)", letterSpacing: 0.5 }}>🎰 HARDROCK SPORTSBOOK ODDS — American format</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div style={{ display: "grid", gap: 6 }}>
-              <label style={{ fontSize: 10, color: R, fontWeight: 900, letterSpacing: 0.8 }}>🔴 RED CORNER</label>
-              <input style={{ ...inp, borderColor: `${R}44`, background: "rgba(239,68,68,0.07)" }} placeholder="-180 or +150" value={ro} onChange={(e) => setRo(e.target.value)} />
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              <label style={{ fontSize: 10, color: B, fontWeight: 900, letterSpacing: 0.8 }}>BLUE CORNER 🔵</label>
-              <input style={{ ...inp, borderColor: `${B}44`, background: "rgba(59,130,246,0.07)" }} placeholder="-180 or +150" value={bo} onChange={(e) => setBo(e.target.value)} />
-            </div>
+        <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <label style={{ fontSize: 10, color: R, fontWeight: 900, letterSpacing: 0.8 }}>RED ODDS (American)</label>
+            <input style={{ ...inp, borderColor: `${R}44` }} placeholder="-200 or +150" value={ro} onChange={(e) => setRo(e.target.value)} />
           </div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-            Entering odds unlocks the betting edge analysis. Favorite = negative (e.g. −180), Underdog = positive (e.g. +155).
+          <div style={{ display: "grid", gap: 6 }}>
+            <label style={{ fontSize: 10, color: B, fontWeight: 900, letterSpacing: 0.8 }}>BLUE ODDS (American)</label>
+            <input style={{ ...inp, borderColor: `${B}44` }} placeholder="-200 or +150" value={bo} onChange={(e) => setBo(e.target.value)} />
           </div>
         </div>
       )}
@@ -986,9 +600,9 @@ function CustomMatchup({ isMobile }) {
         <div style={{ animation: "fiup 380ms ease both", display: "grid", gap: 12 }}>
           <FightCard fight={fightCard} idx={0} isMobile={isMobile} />
           {res.value && res.value.r_vegas_pct > 0 && (
-            <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,165,0,0.2)" }}>
-              <div style={{ padding: "8px 14px", background: "rgba(255,165,0,0.08)", borderBottom: "1px solid rgba(255,165,0,0.15)", fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "rgba(255,165,0,0.75)" }}>
-                🎰 HARDROCK ODDS EDGE ANALYSIS
+            <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ padding: "8px 14px", background: "rgba(0,0,0,0.25)", fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.35)" }}>
+                VALUE ANALYSIS
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
                 {[
@@ -1003,19 +617,19 @@ function CustomMatchup({ isMobile }) {
                         <span style={{ fontWeight: 900, color: f.color }}>{fmtOdds(f.model / 100)}</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "rgba(255,165,0,0.7)" }}>Hardrock odds</span>
-                        <span style={{ fontWeight: 900, color: "#fb923c" }}>{fmtOdds(f.vegas / 100)}</span>
+                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Book odds (vig-adj)</span>
+                        <span style={{ fontWeight: 900 }}>{fmtOdds(f.vegas / 100)}</span>
                       </div>
                       <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Edge vs Hardrock</span>
-                        <span style={{ fontWeight: 900, color: f.edge >= 5 ? "#22c55e" : f.edge >= 0 ? "rgba(255,255,255,0.7)" : "#ef4444" }}>
+                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Edge</span>
+                        <span style={{ fontWeight: 900, color: f.edge >= 8 ? "#22c55e" : f.edge >= 0 ? "rgba(255,255,255,0.7)" : "#ef4444" }}>
                           {f.edge >= 0 ? "+" : ""}{f.edge?.toFixed(1)}%
                         </span>
                       </div>
                       {f.kelly > 0 && (
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                          <span style={{ color: "rgba(255,255,255,0.38)" }}>¼ Kelly size</span>
+                          <span style={{ color: "rgba(255,255,255,0.38)" }}>Kelly (¼)</span>
                           <span style={{ fontWeight: 900, color: "#22c55e" }}>{(f.kelly * 0.25).toFixed(1)}% bankroll</span>
                         </div>
                       )}

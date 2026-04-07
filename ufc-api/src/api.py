@@ -92,94 +92,6 @@ def _parse_odds(val):
         return None
 
 
-def _fuzzy_name_match(a: str, b: str) -> bool:
-    """Return True if two fighter name strings likely refer to the same person."""
-    a, b = a.lower().strip(), b.lower().strip()
-    if a == b:
-        return True
-    last_a = a.split()[-1] if a else ""
-    last_b = b.split()[-1] if b else ""
-    if last_a and last_b and last_a == last_b and len(last_a) > 3:
-        return True
-    return (last_a in b) or (last_b in a)
-
-
-def _fetch_hardrock_odds() -> list:
-    """
-    Fetch current UFC fight odds from The Odds API (Hard Rock Bet book).
-
-    Requires ODDS_API_KEY environment variable (free at the-odds-api.com).
-    Free tier = 500 requests/month.  Returns [] gracefully when key missing.
-
-    Returns a list of dicts:
-        { home, away, home_odds, away_odds, commence_time, last_update }
-    """
-    import requests as req
-
-    api_key = os.environ.get("ODDS_API_KEY", "").strip()
-    if not api_key:
-        log.debug("ODDS_API_KEY not set — skipping Hardrock odds fetch")
-        return []
-
-    url = "https://api.the-odds-api.com/v4/sports/mma_mixed_martial_arts/odds"
-    params = {
-        "apiKey":      api_key,
-        "bookmakers":  "hardrockbet",
-        "markets":     "h2h",
-        "oddsFormat":  "american",
-    }
-    try:
-        resp = req.get(url, params=params, timeout=12)
-        resp.raise_for_status()
-        events = resp.json()
-        remaining = resp.headers.get("x-requests-remaining", "?")
-        log.info(f"Hardrock odds fetched — {len(events)} events, {remaining} API calls remaining")
-    except Exception as e:
-        log.warning(f"Hardrock odds fetch failed: {e}")
-        return []
-
-    results = []
-    for event in events:
-        home = event.get("home_team", "")
-        away = event.get("away_team", "")
-        commence_time = event.get("commence_time", "")
-        for bm in event.get("bookmakers", []):
-            if bm.get("key") != "hardrockbet":
-                continue
-            for market in bm.get("markets", []):
-                if market.get("key") != "h2h":
-                    continue
-                outcomes = {o["name"]: o["price"] for o in market.get("outcomes", [])}
-                if home in outcomes and away in outcomes:
-                    results.append({
-                        "home":         home,
-                        "away":         away,
-                        "home_odds":    int(outcomes[home]),
-                        "away_odds":    int(outcomes[away]),
-                        "commence_time": commence_time,
-                        "last_update":  bm.get("last_update", ""),
-                    })
-    return results
-
-
-def _match_hardrock_to_fights(predictions: list, hardrock_odds: list) -> None:
-    """Mutate each prediction dict to add hardrock_r_odds / hardrock_b_odds if matched."""
-    for pred in predictions:
-        if pred.get("error"):
-            continue
-        red, blue = pred.get("red_fighter", ""), pred.get("blue_fighter", "")
-        for hro in hardrock_odds:
-            h, a = hro["home"], hro["away"]
-            if _fuzzy_name_match(h, red) and _fuzzy_name_match(a, blue):
-                pred["hardrock_r_odds"]   = hro["home_odds"]
-                pred["hardrock_b_odds"]   = hro["away_odds"]
-                pred["hardrock_updated"]  = hro.get("last_update", "")
-                break
-            elif _fuzzy_name_match(h, blue) and _fuzzy_name_match(a, red):
-                pred["hardrock_r_odds"]   = hro["away_odds"]
-                pred["hardrock_b_odds"]   = hro["home_odds"]
-                pred["hardrock_updated"]  = hro.get("last_update", "")
-                break
 
 
 def _safe_float(val, default=None):
@@ -541,43 +453,11 @@ def next_card():
                 "error":         str(e),
             })
 
-    # Attempt to attach live Hardrock odds to each fight
-    hardrock_odds = _fetch_hardrock_odds()
-    if hardrock_odds:
-        _match_hardrock_to_fights(predictions, hardrock_odds)
-        log.info(f"Hardrock odds matched for {sum(1 for p in predictions if p.get('hardrock_r_odds'))} / {len(predictions)} fights")
-
-    from datetime import datetime, timezone
     return jsonify({
-        "event_name":       event["name"],
-        "event_date":       event["date"],
-        "location":         event.get("location", ""),
-        "predictions":      predictions,
-        "hardrock_live":    bool(hardrock_odds),
-        "odds_timestamp":   datetime.now(timezone.utc).isoformat(),
-    })
-
-
-@app.get("/hardrock-odds")
-def hardrock_odds_endpoint():
-    """
-    Lightweight polling endpoint — returns current Hardrock UFC odds.
-    The frontend calls this every 5 minutes to refresh odds without
-    re-running the full model prediction pipeline.
-
-    Response:
-    {
-        "odds": [ { home, away, home_odds, away_odds, last_update }, ... ],
-        "timestamp": "ISO 8601",
-        "live": true/false
-    }
-    """
-    from datetime import datetime, timezone
-    odds = _fetch_hardrock_odds()
-    return jsonify({
-        "odds":      odds,
-        "live":      bool(odds),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event_name":  event["name"],
+        "event_date":  event["date"],
+        "location":    event.get("location", ""),
+        "predictions": predictions,
     })
 
 
