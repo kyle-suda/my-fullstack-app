@@ -304,6 +304,161 @@ def predict_card():
     return jsonify({"event": body.get("event_name", ""), "predictions": results})
 
 
+@app.get("/next-card")
+def next_card():
+    """
+    Scrape the next upcoming UFC event from UFCStats and return predictions
+    for every announced fight.
+    """
+    try:
+        import requests as req
+        from bs4 import BeautifulSoup
+    except ImportError as e:
+        return jsonify({"error": f"Missing dependency: {e}"}), 500
+
+    BASE = "http://www.ufcstats.com"
+    HDRS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    WC_MAP = {
+        "strawweight": "Women's Strawweight",
+        "women's strawweight": "Women's Strawweight",
+        "flyweight": "Flyweight",
+        "women's flyweight": "Women's Flyweight",
+        "bantamweight": "Bantamweight",
+        "women's bantamweight": "Women's Bantamweight",
+        "featherweight": "Featherweight",
+        "women's featherweight": "Women's Featherweight",
+        "lightweight": "Lightweight",
+        "welterweight": "Welterweight",
+        "middleweight": "Middleweight",
+        "light heavyweight": "Light Heavyweight",
+        "heavyweight": "Heavyweight",
+        "catch weight": "Lightweight",
+        "open weight": "Heavyweight",
+    }
+
+    # 1. Get list of upcoming events
+    try:
+        resp = req.get(f"{BASE}/statistics/events/upcoming", headers=HDRS, timeout=14)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+    except Exception as e:
+        return jsonify({"error": f"Cannot fetch events list: {e}"}), 503
+
+    events = []
+    for row in soup.select("tr.b-statistics__table-row"):
+        a = row.find("a", class_="b-link")
+        if not a or "event-details" not in a.get("href", ""):
+            continue
+        date_span = row.find("span", class_="b-statistics__date")
+        tds = row.find_all("td")
+        location = tds[1].get_text(strip=True) if len(tds) > 1 else ""
+        events.append({
+            "name": a.text.strip(),
+            "url": a["href"],
+            "date": date_span.text.strip() if date_span else "",
+            "location": location,
+        })
+
+    if not events:
+        return jsonify({"error": "No upcoming events found on UFCStats"}), 404
+
+    event = events[0]
+
+    # 2. Scrape fights from the event page
+    try:
+        resp = req.get(event["url"], headers=HDRS, timeout=14)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+    except Exception as e:
+        return jsonify({"error": f"Cannot fetch event page: {e}"}), 503
+
+    fights_raw = []
+    for row in soup.select("tr.b-fight-details__table-row"):
+        if not row.get("data-link"):
+            continue
+        anchors = row.select("td p.b-fight-details__table-text a")
+        names = [a.text.strip() for a in anchors if a.text.strip()]
+        if len(names) < 2:
+            continue
+        cols = row.find_all("td")
+        wc_raw = cols[6].get_text(" ", strip=True).lower().strip() if len(cols) > 6 else ""
+        wc = WC_MAP.get(wc_raw, "Lightweight")
+        first_col_text = cols[0].get_text(" ").lower() if cols else ""
+        is_title = "title" in first_col_text or "championship" in first_col_text
+        fights_raw.append({
+            "red": names[0], "blue": names[1],
+            "weight_class": wc, "is_title": is_title,
+        })
+
+    if not fights_raw:
+        return jsonify({"error": "No fights found on the event page — fights may not be announced yet"}), 404
+
+    # 3. Run predictions for each fight
+    predictions = []
+    for i, f in enumerate(fights_raw):
+        is_main = (i == 0)
+        try:
+            result = predictor.predict_fight(
+                red={}, blue={},
+                context={
+                    "weight_class":     f["weight_class"],
+                    "is_title_fight":   f["is_title"] or is_main,
+                    "scheduled_rounds": 5 if (f["is_title"] or is_main) else 3,
+                },
+                red_name=f["red"], blue_name=f["blue"],
+            )
+            r_wp = result.get("red_win_probability", 0.5)
+            b_wp = result.get("blue_win_probability", 0.5)
+            v = result.get("value")
+            method_probs = result.get("method_probabilities") or {}
+            predictions.append({
+                "red_fighter":          result["red_fighter"],
+                "blue_fighter":         result["blue_fighter"],
+                "weight_class":         f["weight_class"],
+                "is_main_event":        is_main,
+                "is_title_fight":       f["is_title"],
+                "winner":               result["winner"],
+                "winner_confidence":    round(result["winner_confidence"] * 100, 1),
+                "red_win_probability":  round(r_wp * 100, 1),
+                "blue_win_probability": round(b_wp * 100, 1),
+                "predicted_method":     result.get("predicted_method"),
+                "method_confidence":    round((result.get("method_confidence") or 0) * 100, 1),
+                "predicted_round":      result.get("predicted_round"),
+                "method_probs":         {k: round(mv * 100, 1) for k, mv in method_probs.items()},
+                "r_elo":                result.get("r_elo"),
+                "b_elo":                result.get("b_elo"),
+                "value": {
+                    "r_edge":  round(v.get("r_edge", 0) * 100, 1),
+                    "b_edge":  round(v.get("b_edge", 0) * 100, 1),
+                    "r_kelly": round((v.get("r_kelly") or 0) * 100, 2),
+                    "b_kelly": round((v.get("b_kelly") or 0) * 100, 2),
+                } if v else None,
+            })
+        except Exception as e:
+            log.warning(f"Prediction error for {f['red']} vs {f['blue']}: {e}")
+            predictions.append({
+                "red_fighter":   f["red"],
+                "blue_fighter":  f["blue"],
+                "weight_class":  f["weight_class"],
+                "is_main_event": is_main,
+                "error":         str(e),
+            })
+
+    return jsonify({
+        "event_name":  event["name"],
+        "event_date":  event["date"],
+        "location":    event.get("location", ""),
+        "predictions": predictions,
+    })
+
+
 @app.get("/weight_classes")
 def get_weight_classes():
     return jsonify({"weight_classes": WEIGHT_CLASSES})
