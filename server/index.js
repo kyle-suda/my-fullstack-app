@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const path = require("path");
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const cors = require("cors");
@@ -8,11 +9,16 @@ const app = express();
 const prisma = new PrismaClient();
 
 const PORT = process.env.PORT || 3001;
+const IS_PROD = process.env.NODE_ENV === "production";
 
 // Middleware
+const allowedOrigins = IS_PROD
+  ? [process.env.FRONTEND_URL, "https://kylesuda.com"].filter(Boolean)
+  : ["http://localhost:5173", "http://localhost:3000"];
+
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
   })
@@ -71,6 +77,16 @@ app.post("/users", async (req, res) => {
     res.status(500).json({ error: "Failed to create user" });
   }
 });
+
+// Serve React frontend in production
+if (IS_PROD) {
+  const clientDist = path.join(__dirname, "..", "client", "dist");
+  app.use(express.static(clientDist));
+  // For any route not caught by the API, return the React app
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 // Start server
 app.listen(PORT, () => {

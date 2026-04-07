@@ -1,0 +1,14 @@
+{
+  "name": "my-fullstack-app",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "cd client && npm install && npm run build && cd ../server && npm install && npx prisma generate",
+    "start": "cd server && npx prisma migrate deploy && node index.js",
+    "dev:server": "cd server && node index.js",
+    "dev:client": "cd client && npm run dev"
+  }
+}

@@ -6,10 +6,9 @@
 **/.env.*
 !.env.example
 
-# prisma local db + generated stuff
+# prisma local db files (never commit these)
 **/dev.db
 **/*.db
-**/prisma/migrations
 
 # build output
 **/dist
