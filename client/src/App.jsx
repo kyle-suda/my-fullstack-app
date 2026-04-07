@@ -415,8 +415,6 @@ function UpcomingCard({ isMobile }) {
 
   if (!data) return null;
 
-  const anyOddsEntered = Object.values(bookOdds).some((bo) => bo.r || bo.b);
-
   return (
     <div style={{ display: "grid", gap: 14 }}>
       {/* Event banner */}
@@ -675,7 +673,7 @@ function UFCPage({ isMobile }) {
         <div style={{ display: "flex", gap: 6, padding: "5px", borderRadius: 16, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
           {[["upcoming", "🗓  Upcoming Card"], ["custom", "🔍  Custom Matchup"]].map(([id, lbl]) => (
             <button key={id} type="button" onClick={() => setTab(id)} style={{
-              padding: "10px 22px", borderRadius: 12, border: "none",
+              padding: "10px 22px", borderRadius: 12,
               background: tab === id ? "linear-gradient(135deg,rgba(239,68,68,0.28),rgba(59,130,246,0.20))" : "transparent",
               border: tab === id ? "1px solid rgba(239,68,68,0.38)" : "1px solid transparent",
               color: tab === id ? "#fff" : "rgba(255,255,255,0.42)",
