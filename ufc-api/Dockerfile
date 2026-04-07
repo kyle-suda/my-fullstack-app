@@ -20,15 +20,9 @@ COPY data/    ./data/
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Railway sets PORT dynamically
+# Railway sets PORT dynamically; default to 8000 if not set
 ENV PORT=8000
-EXPOSE $PORT
+EXPOSE 8000
 
-# Use gunicorn for production; pre-load the app so models load once
-CMD gunicorn \
-    --bind "0.0.0.0:${PORT}" \
-    --workers 1 \
-    --threads 4 \
-    --timeout 120 \
-    --preload \
-    "src.api:app"
+# Use sh -c so ${PORT} is expanded at runtime
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 1 --threads 4 --timeout 120 --preload src.api:app"]
