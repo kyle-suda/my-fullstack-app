@@ -395,23 +395,32 @@ function FightCard({ fight, idx, isMobile, bookR, bookB }) {
 }
 
 /* ─── Per-fight odds entry panel ─────────────────────────────────────────── */
-function OddsInputPanel({ redName, blueName, bookR, bookB, onChangeR, onChangeB }) {
+function OddsInputPanel({ redName, blueName, bookR, bookB, onChangeR, onChangeB, isAuto }) {
   const [open, setOpen] = useState(false);
   const inp = {
     width: "100%", padding: "8px 10px", borderRadius: 10,
     border: "1px solid rgba(255,165,0,0.25)", background: "rgba(255,165,0,0.07)",
     color: "#fb923c", outline: "none", fontSize: 15, fontWeight: 900,
     textAlign: "center", boxSizing: "border-box",
-    placeholder: "e.g. -180",
   };
+  const hasOdds = bookR || bookB;
   return (
-    <div style={{ borderRadius: "0 0 16px 16px", background: "rgba(255,165,0,0.04)", border: "1px solid rgba(255,165,0,0.12)", borderTop: "none", overflow: "hidden" }}>
+    <div style={{ borderRadius: "0 0 16px 16px", background: isAuto ? "rgba(34,197,94,0.04)" : "rgba(255,165,0,0.04)", border: isAuto ? "1px solid rgba(34,197,94,0.18)" : "1px solid rgba(255,165,0,0.12)", borderTop: "none", overflow: "hidden" }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        style={{ width: "100%", padding: "7px 14px", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", color: "rgba(255,165,0,0.7)", fontSize: 11, fontWeight: 900, letterSpacing: 0.5 }}
+        style={{ width: "100%", padding: "7px 14px", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: isAuto ? "rgba(34,197,94,0.75)" : "rgba(255,165,0,0.7)", fontSize: 11, fontWeight: 900, letterSpacing: 0.4 }}
       >
-        <span>🎰  ENTER HARDROCK ODDS  (American format, e.g. −180 or +155)</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {isAuto ? (
+            <><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+            HARDROCK ODDS — Live auto-loaded · Click to override</>
+          ) : hasOdds ? (
+            <>🎰 HARDROCK ODDS — Manual · Click to edit</>
+          ) : (
+            <>🎰 ENTER HARDROCK ODDS</>
+          )}
+        </span>
         <span style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms", fontSize: 9 }}>▼</span>
       </button>
       {open && (
@@ -433,7 +442,7 @@ function OddsInputPanel({ redName, blueName, bookR, bookB, onChangeR, onChangeB 
             />
           </div>
           <div style={{ gridColumn: "1/-1", fontSize: 10, color: "rgba(255,255,255,0.28)", textAlign: "center" }}>
-            Edge updates live. Favorite = negative (−180), Underdog = positive (+155)
+            {isAuto ? "Odds auto-loaded from Hardrock. Edit to override." : "Favorite = negative (−180), Underdog = positive (+155)"}
           </div>
         </div>
       )}
@@ -600,11 +609,73 @@ function UpcomingCard({ isMobile }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
-  // Per-fight Hardrock odds: { "Fighter A|Fighter B": { r: "-180", b: "+155" } }
+  // Per-fight Hardrock odds: { "Fighter A|Fighter B": { r: "-180", b: "+155", auto: true } }
   const [bookOdds, setBookOdds] = useState({});
+  const [oddsTimestamp, setOddsTimestamp] = useState(null);
+  const [oddsLive, setOddsLive] = useState(false);
+  const [oddsRefreshing, setOddsRefreshing] = useState(false);
 
   function setFightOdds(key, side, val) {
-    setBookOdds((prev) => ({ ...prev, [key]: { ...prev[key], [side]: val } }));
+    setBookOdds((prev) => ({ ...prev, [key]: { ...prev[key], [side]: val, auto: false } }));
+  }
+
+  // Auto-populate bookOdds from fight predictions that already have Hardrock odds
+  function applyAutoOdds(predictions) {
+    const auto = {};
+    for (const f of predictions) {
+      if (f.hardrock_r_odds && f.hardrock_b_odds) {
+        const key = `${f.red_fighter}|${f.blue_fighter}`;
+        auto[key] = { r: String(f.hardrock_r_odds), b: String(f.hardrock_b_odds), auto: true };
+      }
+    }
+    // Merge: keep any manually-edited entries, overwrite only untouched auto ones
+    setBookOdds((prev) => {
+      const merged = { ...auto };
+      for (const [k, v] of Object.entries(prev)) {
+        if (!v.auto) merged[k] = v; // preserve manual edits
+      }
+      return merged;
+    });
+  }
+
+  // Lightweight poll: re-fetch Hardrock odds without re-running models
+  async function refreshOdds(fights) {
+    if (!fights?.length) return;
+    setOddsRefreshing(true);
+    try {
+      const r = await fetch(`${UFC_API}/hardrock-odds`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return;
+      const d = await r.json();
+      setOddsLive(d.live);
+      setOddsTimestamp(d.timestamp);
+      if (d.live && d.odds?.length) {
+        // Match returned odds to current fights using last-name fuzzy matching
+        function lastName(n) { return (n || "").split(" ").pop().toLowerCase(); }
+        const updated = {};
+        for (const fight of fights) {
+          const key = `${fight.red_fighter}|${fight.blue_fighter}`;
+          const lRed = lastName(fight.red_fighter), lBlue = lastName(fight.blue_fighter);
+          for (const hro of d.odds) {
+            const lHome = lastName(hro.home), lAway = lastName(hro.away);
+            if (lHome === lRed && lAway === lBlue) {
+              updated[key] = { r: String(hro.home_odds), b: String(hro.away_odds), auto: true };
+              break;
+            } else if (lHome === lBlue && lAway === lRed) {
+              updated[key] = { r: String(hro.away_odds), b: String(hro.home_odds), auto: true };
+              break;
+            }
+          }
+        }
+        setBookOdds((prev) => {
+          const merged = { ...updated };
+          for (const [k, v] of Object.entries(prev)) {
+            if (!v.auto) merged[k] = v; // preserve manual edits
+          }
+          return merged;
+        });
+      }
+    } catch (_) {}
+    finally { setOddsRefreshing(false); }
   }
 
   async function load() {
@@ -615,12 +686,22 @@ function UpcomingCard({ isMobile }) {
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setData(d);
-      setBookOdds({});
+      setOddsLive(d.hardrock_live || false);
+      setOddsTimestamp(d.odds_timestamp || null);
+      // Apply any odds that came back with the predictions
+      applyAutoOdds(d.predictions || []);
     } catch (e) { setErr(e.message || "Could not load upcoming card"); }
     finally { setLoading(false); }
   }
 
   useEffect(() => { load(); }, []);
+
+  // Poll for odds updates every 5 minutes
+  useEffect(() => {
+    if (!data) return;
+    const id = setInterval(() => refreshOdds(data.predictions), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [data]);
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "80px 20px", display: "grid", gap: 16, justifyItems: "center" }}>
@@ -677,6 +758,22 @@ function UpcomingCard({ isMobile }) {
           <span style={{ padding: "5px 14px", borderRadius: 99, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.10)", fontSize: 12, fontWeight: 700 }}>
             {data.predictions?.length || 0} Fights
           </span>
+          {/* Live odds badge */}
+          {oddsLive ? (
+            <span style={{
+              padding: "5px 12px", borderRadius: 99, fontSize: 11, fontWeight: 900,
+              background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#22c55e",
+              display: "flex", alignItems: "center", gap: 5,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 1.5s ease infinite" }} />
+              Live Hardrock Odds
+              {oddsRefreshing && <Icon name="loader" size={12} color="#22c55e" />}
+            </span>
+          ) : (
+            <span style={{ padding: "5px 12px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: "rgba(255,165,0,0.09)", border: "1px solid rgba(255,165,0,0.22)", color: "rgba(255,165,0,0.7)" }}>
+              🎰 Manual odds
+            </span>
+          )}
           <button onClick={load} style={{
             display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 11,
             background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.11)",
@@ -685,8 +782,24 @@ function UpcomingCard({ isMobile }) {
         </div>
       </div>
 
-      {/* Hint when no odds entered */}
-      {!anyOddsEntered && (
+      {/* Odds status bar */}
+      {oddsLive ? (
+        <div style={{
+          padding: "10px 14px", borderRadius: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
+          background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.18)",
+        }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13 }}>🟢</span>
+            <span style={{ fontWeight: 800, fontSize: 12, color: "#22c55e" }}>Live Hardrock odds auto-loaded</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>— updates every 5 min. Override any odds manually below.</span>
+          </div>
+          {oddsTimestamp && (
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", fontWeight: 600 }}>
+              Updated {new Date(oddsTimestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+      ) : !anyOddsEntered && (
         <div style={{
           padding: "12px 16px", borderRadius: 14, display: "flex", gap: 10, alignItems: "center",
           background: "rgba(255,165,0,0.06)", border: "1px solid rgba(255,165,0,0.18)",
@@ -723,6 +836,7 @@ function UpcomingCard({ isMobile }) {
               bookR={bo.r || ""} bookB={bo.b || ""}
               onChangeR={(v) => setFightOdds(key, "r", v)}
               onChangeB={(v) => setFightOdds(key, "b", v)}
+              isAuto={bo.auto === true}
             />
           </div>
         );
