@@ -21,6 +21,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+log = logging.getLogger("ufc-predictor")
+
 # Suppress noisy third-party library warnings
 warnings.filterwarnings("ignore")
 logging.getLogger("lightgbm").setLevel(logging.ERROR)
@@ -40,14 +42,69 @@ ELO_DEFAULT = 1500.0
 class UFCPredictor:
     """Load trained models and make predictions for new fights."""
 
-    def __init__(self, models_dir: str = MODELS_DIR):
+    def __init__(self, models_dir: str = MODELS_DIR, data_dir: str = DATA_DIR):
         self.models_dir = models_dir
+        self.data_dir   = data_dir
         self.winner_model = None
         self.method_model = None
         self.round_model = None
         self.feature_columns = None
         self.elo_ratings: dict = {}
+        self.fighter_stats: dict = {}   # name → most-recent stat dict
         self._load_models()
+        self._load_fighter_stats()
+
+    def _load_fighter_stats(self):
+        """
+        Build a name → stats lookup from the training CSV.
+
+        Each fighter's entry reflects their stats as of their MOST RECENT
+        fight in the dataset. These are used to auto-populate the red/blue
+        dicts in predict_fight() so custom matchups use real stats instead
+        of all-zero defaults.
+        """
+        csv_path = os.path.join(self.data_dir, "raw", "ufc-master.csv")
+        if not os.path.exists(csv_path):
+            log.warning("ufc-master.csv not found — fighter stats unavailable.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path)
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"], errors="coerce")
+                df = df.sort_values("date", ascending=True)
+
+            for _, row in df.iterrows():
+                for corner, prefix in [("R_fighter", "R_"), ("B_fighter", "B_")]:
+                    name = str(row.get(corner, "")).strip()
+                    if not name:
+                        continue
+                    wins   = float(row.get(f"{prefix}wins",   0) or 0)
+                    losses = float(row.get(f"{prefix}losses", 0) or 0)
+                    self.fighter_stats[name] = {
+                        "wins":                wins,
+                        "losses":              losses,
+                        "height_cm":           float(row.get(f"{prefix}Height_cms",         0) or 0),
+                        "reach_cm":            float(row.get(f"{prefix}Reach_cms",          0) or 0),
+                        "age":                 float(row.get(f"{prefix}age",                0) or 0),
+                        "stance":              str(row.get(f"{prefix}Stance", "Orthodox") or "Orthodox"),
+                        "sig_str_landed_pm":   float(row.get(f"{prefix}avg_SIG_STR_landed", 0) or 0),
+                        "sub_avg":             float(row.get(f"{prefix}avg_SUB_ATT",        0) or 0),
+                        "td_avg":              float(row.get(f"{prefix}avg_TD_landed",      0) or 0),
+                        "win_streak":          float(row.get(f"{prefix}current_win_streak", 0) or 0),
+                        "loss_streak":         float(row.get(f"{prefix}current_lose_streak",0) or 0),
+                        "longest_win_streak":  float(row.get(f"{prefix}longest_win_streak", 0) or 0),
+                        "ko_wins":             float(row.get(f"{prefix}win_by_KO/TKO",      0) or 0),
+                        "sub_wins":            float(row.get(f"{prefix}win_by_Submission",  0) or 0),
+                        "title_bouts":         float(row.get(f"{prefix}total_title_bouts",  0) or 0),
+                        "total_rounds_fought": float(row.get(f"{prefix}total_rounds_fought",0) or 0),
+                        "ufc_fights":          wins + losses,
+                        "rank":                row.get(f"{prefix}match_weightclass_rank"),
+                    }
+
+            log.info(f"Loaded stats for {len(self.fighter_stats)} fighters.")
+        except Exception as exc:
+            log.warning(f"Could not load fighter stats: {exc}")
 
     def _load_models(self):
         meta_path = os.path.join(self.models_dir, "feature_meta.json")
@@ -67,8 +124,8 @@ class UFCPredictor:
             with open(elo_path) as f:
                 self.elo_ratings = json.load(f)
 
-        # Prefer ensemble model for winner if available
-        for name in ("winner_ensemble_model.pkl", "winner_xgb_model.pkl"):
+        # Load best winner model: ensemble > lgbm > xgb (in preference order)
+        for name in ("winner_ensemble_model.pkl", "winner_lgbm_model.pkl", "winner_xgb_model.pkl"):
             path = os.path.join(self.models_dir, name)
             if os.path.exists(path):
                 with open(path, "rb") as f:
@@ -160,6 +217,23 @@ class UFCPredictor:
         row["ko_rate_diff"] = r_ko_rate - b_ko_rate
         row["sub_rate_diff"] = r_sub_rate - b_sub_rate
 
+        # Win quality = Laplace win rate × SOS
+        r_wr_lpl  = (r_wins + 1) / (r_wins + r_losses + 2)
+        b_wr_lpl  = (b_wins + 1) / (b_wins + b_losses + 2)
+        r_sos_val = float(red.get("sos",  0.5) or 0.5)
+        b_sos_val = float(blue.get("sos", 0.5) or 0.5)
+        row["win_quality_diff"] = r_wr_lpl * r_sos_val - b_wr_lpl * b_sos_val
+
+        # Physical composite: (height_cm + reach_cm) / 2
+        r_phys = (float(red.get("height_cm",  0) or 0) + float(red.get("reach_cm",  0) or 0)) / 2.0
+        b_phys = (float(blue.get("height_cm", 0) or 0) + float(blue.get("reach_cm", 0) or 0)) / 2.0
+        row["physical_diff"] = r_phys - b_phys
+
+        # Title-bout experience rate
+        r_title_exp = float(red.get("title_bouts",  0) or 0) / max(r_wins + r_losses + 1, 1)
+        b_title_exp = float(blue.get("title_bouts", 0) or 0) / max(b_wins + b_losses + 1, 1)
+        row["title_exp_diff"] = r_title_exp - b_title_exp
+
         # Stance
         r_stance = red.get("stance", "Unknown")
         b_stance = blue.get("stance", "Unknown")
@@ -246,6 +320,15 @@ class UFCPredictor:
             raise RuntimeError("No winner model loaded. Run train.py first.")
 
         context = context or {}
+
+        # Auto-populate fighter stats from the dataset if the caller didn't
+        # supply them. This is the key step that makes custom matchups confident
+        # — without real stats the model has almost nothing to work with.
+        if self.fighter_stats:
+            if not red:
+                red = dict(self.fighter_stats.get(red_name, {}))
+            if not blue:
+                blue = dict(self.fighter_stats.get(blue_name, {}))
 
         # Inject Elo ratings for the named fighters (key for confident predictions)
         r_elo = ELO_DEFAULT

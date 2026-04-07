@@ -32,6 +32,9 @@
     "striker_style_diff",
     "grappler_style_diff",
     "sos_diff",
+    "win_quality_diff",
+    "physical_diff",
+    "title_exp_diff",
     "ufc_experience_diff",
     "elo_diff",
     "elo_win_prob",
@@ -55,39 +58,32 @@
     "wc_Women's Flyweight",
     "wc_Women's Strawweight"
   ],
+  "best_winner_model": "winner_ensemble_model.pkl",
   "results": {
+    "winner_lgbm": {
+      "mean_accuracy": 0.6367585630743526,
+      "std_accuracy": 0.011188417071200128,
+      "mean_log_loss": 0.6629343866143734
+    },
     "winner_xgb": {
-      "mean_accuracy": 0.6466165413533834,
-      "std_accuracy": 0.009813985066391594,
-      "fold_scores": [
-        0.6532999164578112,
-        0.6390977443609023,
-        0.633249791144528,
-        0.6466165413533834,
-        0.6608187134502924
-      ]
+      "mean_accuracy": 0.6487886382623225,
+      "std_accuracy": 0.010719475309838227,
+      "mean_log_loss": 0.6504844710919162
+    },
+    "winner_ensemble": {
+      "mean_accuracy": 0.6558061821219716,
+      "std_accuracy": 0.011648070214157648,
+      "mean_log_loss": 0.6126175744514464
     },
     "method": {
-      "mean_accuracy": 0.4429406850459482,
-      "std_accuracy": 0.027400819102032705,
-      "fold_scores": [
-        0.4101921470342523,
-        0.42606516290726815,
-        0.4327485380116959,
-        0.4569757727652464,
-        0.48872180451127817
-      ]
+      "mean_accuracy": 0.43558897243107764,
+      "std_accuracy": 0.022220337732044092,
+      "mean_log_loss": null
     },
     "round": {
-      "mean_accuracy": 0.5498627630375114,
-      "std_accuracy": 0.019130217805943452,
-      "fold_scores": [
-        0.5242451967063129,
-        0.5672461116193962,
-        0.5645013723696248,
-        0.5288197621225984,
-        0.5645013723696248
-      ]
+      "mean_accuracy": 0.5473010064043915,
+      "std_accuracy": 0.019054808485921015,
+      "mean_log_loss": null
     }
   }
 }

@@ -512,6 +512,15 @@ FEATURE_COLUMNS = [
     # Strength of schedule — quality of past opponents
     "sos_diff",
 
+    # Win quality: win rate × SOS (resume quality signal)
+    "win_quality_diff",
+
+    # Physical composite: (height + reach) / 2
+    "physical_diff",
+
+    # Title-bout experience rate
+    "title_exp_diff",
+
     # UFC experience — how many fights in the dataset (new fighter penalty)
     "ufc_experience_diff",
 
@@ -745,6 +754,62 @@ def mirror_feature_matrix(
     return X_aug.iloc[idx].reset_index(drop=True), y_aug.iloc[idx].reset_index(drop=True)
 
 
+def build_quality_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Additional fighter quality signals not captured by raw stats.
+
+    win_quality_diff : weighted win rate scaled by strength of schedule
+                       — a 20-0 fighter who beat nobody < a 10-2 fighter
+                       who beat top-10s
+    physical_diff    : combined height + reach composite (normalised)
+    dominance_diff   : how lopsided wins are (avg finishing round / total rounds)
+    title_exp_diff   : number of title bouts (experience under pressure)
+    """
+    df = df.copy()
+
+    for corner, prefix in [("red", "R"), ("blue", "B")]:
+        wins_col   = FIGHTER_COLS[corner]["wins"]
+        losses_col = FIGHTER_COLS[corner]["losses"]
+        h_col      = FIGHTER_COLS[corner]["height"]
+        r_col      = FIGHTER_COLS[corner]["reach"]
+        t_col      = FIGHTER_COLS[corner]["title_bouts"]
+
+        if wins_col not in df.columns:
+            continue
+
+        w = pd.to_numeric(df[wins_col],   errors="coerce").fillna(0)
+        l = pd.to_numeric(df[losses_col], errors="coerce").fillna(0)
+        total = w + l + 1e-9
+
+        win_rate = (w + 1) / (total + 2)   # Laplace smoothed
+
+        # SOS-weighted win quality: better opponents → more credit
+        sos_col = f"{prefix}_sos"
+        if sos_col in df.columns:
+            sos = df[sos_col].fillna(0.5)
+            df[f"{prefix}_win_quality"] = win_rate * sos
+        else:
+            df[f"{prefix}_win_quality"] = win_rate
+
+        # Physical composite: (height_cm + reach_cm) / 2  (normalised away at diff)
+        h = pd.to_numeric(df.get(h_col, 0), errors="coerce").fillna(0)
+        r = pd.to_numeric(df.get(r_col, 0), errors="coerce").fillna(0)
+        df[f"{prefix}_physical"] = (h + r) / 2.0
+
+        # Title-bout experience
+        t = pd.to_numeric(df.get(t_col, 0), errors="coerce").fillna(0)
+        df[f"{prefix}_title_exp"] = t / (total + 1e-9)   # rate, not raw count
+
+    if "R_win_quality" in df.columns and "B_win_quality" in df.columns:
+        df["win_quality_diff"] = df["R_win_quality"] - df["B_win_quality"]
+    if "R_physical" in df.columns and "B_physical" in df.columns:
+        df["physical_diff"]    = df["R_physical"]    - df["B_physical"]
+    if "R_title_exp" in df.columns and "B_title_exp" in df.columns:
+        df["title_exp_diff"]   = df["R_title_exp"]   - df["B_title_exp"]
+
+    return df
+
+
 def build_all_features(df: pd.DataFrame, final_elo: Optional[dict] = None) -> pd.DataFrame:
     """
     Run the full feature engineering pipeline.
@@ -762,6 +827,7 @@ def build_all_features(df: pd.DataFrame, final_elo: Optional[dict] = None) -> pd
     df = build_smoothed_win_rate(df)     # Laplace win rate replaces raw win rate
     df = build_finish_style_features(df)
     df = build_strength_of_schedule(df)
+    df = build_quality_features(df)      # win quality, physical composite, title exp
     df = build_elo_features(df, final_elo=final_elo)   # Elo ratings (key feature)
     df = build_recent_form(df)                         # Last 3 fights trajectory
     df = build_stance_feature(df)
