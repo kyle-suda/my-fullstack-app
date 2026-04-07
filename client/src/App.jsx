@@ -1,69 +1,63 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   kylesuda.com — v3 complete redesign
-   ═══════════════════════════════════════════════════════════════════════════ */
+import { useEffect, useRef, useState } from "react";
 
 const UFC_API = "https://vibrant-healing-ufc-api-production.up.railway.app";
+const MONO = `"SF Mono","JetBrains Mono","Fira Code","Consolas",monospace`;
+const SANS = `-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif`;
 
-/* ─── Site content ──────────────────────────────────────────────────────── */
+const T = {
+  bg:     "#090909",
+  surf:   "#0e0e13",
+  bd:     "rgba(255,255,255,0.08)",
+  bdHi:   "rgba(255,255,255,0.13)",
+  text:   "#e2e2ee",
+  dim:    "#505070",
+  faint:  "#181824",
+  green:  "#4ade80",
+  red:    "#f87171",
+  blue:   "#60a5fa",
+  yellow: "#fbbf24",
+  purple: "#a78bfa",
+};
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
 const CONTENT = {
   name: "Kyle Suda",
-  title: "Cybersecurity · Full-Stack Developer · Student",
-  location: "Tampa, FL",
-  tagline: "I build secure, reliable apps and learn fast through hands-on labs, projects, and real-world security practice.",
+  role: "cybersecurity · full-stack · ml",
+  tagline: "Building secure apps and prediction systems through hands-on labs, full-stack projects, and real-world security practice.",
   about: [
-    "Focused on cybersecurity and full-stack development—building practical projects while studying security fundamentals, networking, and secure software design.",
-    "I enjoy hands-on labs (Wireshark, IDS/Snort, honeypots, HTB-style environments) and turning what I learn into clean, usable tools and dashboards.",
-    "Especially interested in defensive security, detection engineering, and building systems that are secure by design.",
-  ],
-  highlights: [
-    { label: "Focus", value: "Cybersecurity + Full-Stack" },
-    { label: "Strength", value: "ML + Hands-on labs" },
-    { label: "Goal", value: "Security / SOC / AppSec" },
-    { label: "Tech", value: "React · Node · Python · ML" },
+    "Focused on cybersecurity and full-stack development. I build practical projects while studying security fundamentals, networking, and secure software design.",
+    "Especially interested in defensive security, detection engineering, and systems that are secure by design. I also build ML-powered prediction engines.",
   ],
   skills: {
-    Security:      ["Network fundamentals", "IDS/IPS basics", "Threat intel", "Secure coding"],
-    Development:   ["React", "Node/Express", "Prisma ORM", "REST APIs"],
-    "ML / Data":   ["Python", "XGBoost", "LightGBM", "Feature Engineering", "Elo Systems"],
-    Tools:         ["Wireshark", "Nmap", "Snort", "Linux CLI"],
-    Workflow:      ["Git/GitHub", "Documentation", "Debugging", "Testing"],
+    lang:     ["Python", "JavaScript", "TypeScript", "SQL"],
+    ml:       ["XGBoost", "LightGBM", "Elo Systems", "Feature Engineering"],
+    security: ["Network Fundamentals", "IDS/IPS", "Wireshark", "Snort"],
+    web:      ["React", "Node.js", "Express", "REST APIs"],
+    infra:    ["Docker", "Railway", "Vercel", "Git"],
   },
   projects: [
     {
-      name: "UFC Fight Prediction Engine",
-      blurb: "ML model predicting UFC outcomes at 77% winner accuracy. XGBoost + LightGBM ensembles, incremental Elo ratings, strength-of-schedule, Bayesian stat smoothing, and value-bet detection vs Vegas odds.",
+      id: "ufc",
+      name: "fight-prediction-engine",
+      live: true,
+      blurb: "ML model predicting UFC fight outcomes. XGBoost + LightGBM stacking ensemble, incremental Elo ratings, strength-of-schedule weighting, Bayesian stat smoothing, and value-bet detection vs Vegas odds.",
       stack: ["Python", "XGBoost", "LightGBM", "Flask", "React"],
-      bullets: [
-        "End-to-end pipeline: data scraping → feature engineering → TimeSeriesSplit CV → stacking ensemble",
-        "Incremental Elo across 7,000+ historical fights to capture fighter momentum",
-        "Vig-adjusted Vegas odds comparison with Kelly criterion bet sizing",
-        "Deployed as a live Flask API on Railway with a React UI on kylesuda.com",
-      ],
-      featured: true,
+      page: "ufc",
     },
     {
-      name: "User Ops Suite",
-      blurb: "Full-stack user dashboard with search, insights, and activity views. Built to practice API + DB wiring and UI polish.",
-      stack: ["React", "Node/Express", "Prisma", "PostgreSQL"],
-      bullets: [
-        "List/search/sort/pagination patterns with a custom UI shell",
-        "Multiple pages (Dashboard / Insights / Activity) for analytics and system visibility",
-        "Clean error handling and predictable UX",
-      ],
-      links: [{ label: "GitHub", href: "https://github.com/kyle-suda" }],
+      id: "ops",
+      name: "user-ops-suite",
+      live: false,
+      blurb: "Full-stack user dashboard with search, insights, and activity views. List/search/sort/pagination with a clean UI shell and multiple analytics pages.",
+      stack: ["React", "Node.js", "Prisma", "PostgreSQL"],
+      github: "https://github.com/kyle-suda",
     },
     {
-      name: "Security Lab Notes",
-      blurb: "Curated notes from networking and security labs: TCP analysis, HTTP traces, IDS rules, and detection thinking.",
+      id: "sec",
+      name: "security-lab-notes",
+      live: false,
+      blurb: "Curated notes from networking and security labs: TCP analysis, HTTP traces, IDS rules, and detection thinking. Clear, repeatable documentation.",
       stack: ["Wireshark", "Snort", "Linux"],
-      bullets: [
-        "Packet trace analysis for RTT, throughput, and retransmissions",
-        "IDS rules written and tested for detecting suspicious traffic",
-        "Clear, repeatable documentation with steps and screenshots",
-      ],
-      links: [],
     },
   ],
   experience: [
@@ -73,8 +67,7 @@ const CONTENT = {
       timeframe: "2024 – Present",
       points: [
         "Building full-stack apps and security labs to strengthen fundamentals",
-        "Practicing network analysis, IDS concepts, and secure development habits",
-        "Documenting work clearly for repeatable results",
+        "Practicing network analysis, IDS concepts, and secure development",
       ],
     },
     {
@@ -82,29 +75,23 @@ const CONTENT = {
       org: "Personal Portfolio",
       timeframe: "Ongoing",
       points: [
-        "Developing projects combining security + usability",
-        "Iterating with feedback, improving design and code quality",
-        "Focusing on measurable outcomes: features shipped, bugs fixed, skills gained",
+        "Developing projects combining security and usability",
+        "Iterating with feedback, focusing on measurable outcomes",
       ],
     },
   ],
   education: [
     {
       school: "University of South Florida",
-      program: "Cybersecurity / Computing Coursework",
+      program: "Cybersecurity / CS Coursework",
       timeframe: "In progress",
       notes: ["Networking", "Security Fundamentals", "Programming", "Databases"],
     },
-  ],
-  certifications: [
-    { name: "SAFe Scrum Master (studying)", year: "2024–2025" },
-    { name: "Cybersecurity Foundations (coursework)", year: "2025" },
   ],
   contact: {
     email: "kylesuda@example.com",
     linkedin: "https://linkedin.com/in/kylesuda",
     github: "https://github.com/kyle-suda",
-    website: "https://kylesuda.com",
   },
 };
 
@@ -114,7 +101,7 @@ const WEIGHT_CLASSES = [
   "Women's Featherweight", "Women's Bantamweight", "Women's Flyweight", "Women's Strawweight",
 ];
 
-/* ─── Utility hooks ─────────────────────────────────────────────────────── */
+/* ── Hooks ───────────────────────────────────────────────────────────────── */
 function useWindowSize() {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => {
@@ -125,61 +112,13 @@ function useWindowSize() {
   return w;
 }
 
-function useAnimatedBg() {
-  const [t, setT] = useState(0);
-  const raf = useRef(0);
-  useEffect(() => {
-    let last = performance.now();
-    const loop = (now) => {
-      const dt = now - last; last = now;
-      setT((x) => (x + dt * 0.000045) % 1);
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, []);
-  return useMemo(() => {
-    const x1 = 18 + 38 * Math.sin(t * Math.PI * 2);
-    const y1 = 12 + 22 * Math.cos(t * Math.PI * 2);
-    const x2 = 72 + 20 * Math.cos(t * Math.PI * 2 + 1.2);
-    const y2 = 68 + 18 * Math.sin(t * Math.PI * 2 + 0.8);
-    return {
-      backgroundImage: `
-        radial-gradient(900px 600px at ${x1}% ${y1}%, rgba(139,92,246,0.13) 0%, transparent 55%),
-        radial-gradient(800px 550px at ${x2}% ${y2}%, rgba(59,130,246,0.10) 0%, transparent 55%),
-        linear-gradient(160deg, #060810 0%, #080d18 55%, #060b12 100%)
-      `,
-    };
-  }, [t]);
-}
-
-/* ─── Icons ─────────────────────────────────────────────────────────────── */
-function Icon({ name, size = 18, color = "currentColor" }) {
-  const s = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
-  const M = {
-    home:     <svg {...s}><path d="M3 10.5 12 3l9 7.5V21a1.5 1.5 0 0 1-1.5 1.5H4.5A1.5 1.5 0 0 1 3 21V10.5Z"/><path d="M9 22V13h6v9"/></svg>,
-    code:     <svg {...s}><path d="M16 18 22 12 16 6"/><path d="M8 6 2 12l6 6"/><path d="M14 4 10 20"/></svg>,
-    doc:      <svg {...s}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>,
-    mail:     <svg {...s}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>,
-    link:     <svg {...s}><path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1"/><path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1"/></svg>,
-    search:   <svg {...s}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
-    x:        <svg {...s}><path d="M18 6 6 18M6 6l12 12"/></svg>,
-    loader:   <svg {...s} style={{ animation: "spin 0.9s linear infinite" }}><circle cx="12" cy="12" r="9" strokeDasharray="28 28"/></svg>,
-    refresh:  <svg {...s}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>,
-    zap:      <svg {...s}><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
-    calendar: <svg {...s}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-    map:      <svg {...s}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-    menu:     <svg {...s}><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/></svg>,
-    star:     <svg {...s}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-    shield:   <svg {...s}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-    trophy:   <svg {...s}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-    chevRight:<svg {...s}><path d="M9 18l6-6-6-6"/></svg>,
-  };
-  return M[name] || null;
-}
-
-/* ─── Helpers ────────────────────────────────────────────────────────────── */
-const MC = { "KO/TKO": "#ef4444", "Submission": "#8b5cf6", "Decision": "#3b82f6", "Other/No Contest": "#6b7280" };
+/* ── Shared primitives ───────────────────────────────────────────────────── */
+const MC = {
+  "KO/TKO":          T.red,
+  "Submission":      T.purple,
+  "Decision":        T.blue,
+  "Other/No Contest": "#6b7280",
+};
 
 function toAmericanOdds(prob) {
   const p = Math.max(0.01, Math.min(0.99, prob));
@@ -191,122 +130,107 @@ function fmtOdds(prob) {
   return o > 0 ? `+${o}` : `${o}`;
 }
 
-/* ─── Compact Sportsbook-Style Fight Card ────────────────────────────────── */
-function FightCard({ fight, idx, isMobile }) {
-  const R = "#ef4444", B = "#3b82f6";
+function Lbl({ children, color }) {
+  return (
+    <div style={{
+      fontFamily: MONO, fontSize: 11, color: color || T.dim,
+      letterSpacing: 1, marginBottom: 18,
+    }}>
+      // {children}
+    </div>
+  );
+}
 
+/* ── FightCard ───────────────────────────────────────────────────────────── */
+function FightCard({ fight, idx, isMobile }) {
   if (fight.error) {
     return (
-      <div style={{ padding: "12px 16px", borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)", color: "rgba(255,255,255,0.42)", fontSize: 13 }}>
+      <div style={{ padding: "14px 0", borderBottom: `1px solid ${T.bd}`, color: T.dim, fontSize: 12, fontFamily: MONO }}>
         {fight.red_fighter} vs {fight.blue_fighter} — {fight.error}
       </div>
     );
   }
 
   const winRed = fight.winner === fight.red_fighter;
-  const rPct = fight.red_win_probability ?? 50;
-  const bPct = fight.blue_win_probability ?? 50;
-
-  const methodOrder = ["KO/TKO", "Submission", "Decision", "Other/No Contest"];
-  const methodProbs = fight.method_probs || {};
-  const shownMethods = methodOrder.filter((m) => (methodProbs[m] ?? 0) > 1);
+  const rPct   = fight.red_win_probability  ?? 50;
+  const bPct   = fight.blue_win_probability ?? 50;
+  const mProbs = fight.method_probs || {};
 
   return (
-    <div style={{
-      borderRadius: 16, overflow: "hidden",
-      background: fight.is_main_event
-        ? "linear-gradient(135deg, rgba(239,68,68,0.08), rgba(6,8,16,0.0) 55%, rgba(59,130,246,0.06))"
-        : "rgba(255,255,255,0.033)",
-      border: fight.is_main_event ? "1px solid rgba(239,68,68,0.26)" : "1px solid rgba(255,255,255,0.08)",
-      animation: `fiup 360ms ease ${idx * 55}ms both`,
-    }}>
+    <div style={{ borderBottom: `1px solid ${T.bd}`, padding: "20px 0", animation: `fd 180ms ease ${idx * 35}ms both` }}>
 
-      {/* ── Top bar: badges ── */}
-      <div style={{
-        padding: "8px 14px", background: "rgba(0,0,0,0.22)", borderBottom: "1px solid rgba(255,255,255,0.06)",
-        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
-      }}>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          {fight.is_main_event && <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 900, letterSpacing: 0.6, background: "linear-gradient(90deg,#ef4444,#f97316)", color: "#fff" }}>★ MAIN EVENT</span>}
-          {fight.is_title_fight && <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 900, background: "linear-gradient(90deg,#f59e0b,#d97706)", color: "#fff" }}>🏆 TITLE</span>}
-          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.50)" }}>{fight.weight_class}</span>
+      {/* Meta */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+        {fight.is_main_event  && <span style={{ fontFamily: MONO, fontSize: 9,  color: T.red,    letterSpacing: 1.2, fontWeight: 800 }}>MAIN</span>}
+        {fight.is_title_fight && <span style={{ fontFamily: MONO, fontSize: 9,  color: T.yellow, letterSpacing: 1.2, fontWeight: 800 }}>TITLE</span>}
+        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{fight.weight_class}</span>
+      </div>
+
+      {/* Fighters */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
+        {/* Red */}
+        <div>
+          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: winRed ? T.red : T.text, lineHeight: 1.2, marginBottom: 6 }}>
+            {fight.red_fighter}
+            {winRed && <span style={{ marginLeft: 8, fontFamily: MONO, fontSize: 9, color: T.red }}>pick</span>}
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: isMobile ? 22 : 26, fontWeight: 700, color: T.red, lineHeight: 1 }}>{rPct.toFixed(1)}%</div>
+          <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginTop: 4 }}>{fmtOdds(rPct / 100)}</div>
+          {fight.r_elo && <div style={{ fontFamily: MONO, fontSize: 10, color: T.faint, marginTop: 3, color: "#2a2a40" }}>elo {fight.r_elo}</div>}
+        </div>
+
+        {/* Bar */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: isMobile ? 48 : 60 }}>
+          <div style={{ width: "100%", height: 2, background: T.faint, borderRadius: 99, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${rPct}%`, background: T.red, borderRadius: "99px 0 0 99px" }} />
+            <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: `${bPct}%`, background: T.blue, borderRadius: "0 99px 99px 0" }} />
+          </div>
+          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: 1, color: "#28283c" }}>vs</span>
+        </div>
+
+        {/* Blue */}
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: !winRed ? T.blue : T.text, lineHeight: 1.2, marginBottom: 6 }}>
+            {!winRed && <span style={{ marginRight: 8, fontFamily: MONO, fontSize: 9, color: T.blue }}>pick</span>}
+            {fight.blue_fighter}
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: isMobile ? 22 : 26, fontWeight: 700, color: T.blue, lineHeight: 1 }}>{bPct.toFixed(1)}%</div>
+          <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginTop: 4 }}>{fmtOdds(bPct / 100)}</div>
+          {fight.b_elo && <div style={{ fontFamily: MONO, fontSize: 10, marginTop: 3, color: "#28283c" }}>elo {fight.b_elo}</div>}
         </div>
       </div>
 
-      {/* ── Main layout ── */}
-      <div style={{ padding: isMobile ? "12px 14px" : "14px 18px", display: "grid", gap: 10 }}>
-
-        {/* Fighter names */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: winRed ? R : "#e8eef6" }}>{fight.red_fighter}</span>
-              {winRed && <span style={{ fontSize: 10, fontWeight: 900, color: R, background: `${R}1a`, border: `1px solid ${R}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
-            </div>
-            {fight.r_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2 }}>Elo {fight.r_elo}</div>}
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,0.25)", letterSpacing: 1 }}>VS</div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 7 }}>
-              {!winRed && <span style={{ fontSize: 10, fontWeight: 900, color: B, background: `${B}1a`, border: `1px solid ${B}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
-              <span style={{ fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3, color: !winRed ? B : "#e8eef6" }}>{fight.blue_fighter}</span>
-            </div>
-            {fight.b_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2, textAlign: "right" }}>Elo {fight.b_elo}</div>}
-          </div>
+      {/* Method row */}
+      {(Object.keys(mProbs).length > 0 || fight.predicted_method) && (
+        <div style={{ marginTop: 14, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+          {["KO/TKO", "Decision", "Submission"].map((m) => {
+            const pct = mProbs[m] ?? 0;
+            if (pct < 1) return null;
+            return (
+              <span key={m} style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
+                <span style={{ color: MC[m] }}>{m}</span> {pct.toFixed(0)}%
+              </span>
+            );
+          })}
+          {fight.predicted_method && (
+            <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: "auto" }}>
+              → {fight.predicted_method}{fight.predicted_round ? ` R${fight.predicted_round}` : ""}
+            </span>
+          )}
         </div>
-
-        {/* Odds + probability bar */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "center", gap: 6 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: R, letterSpacing: -1, lineHeight: 1 }}>{fmtOdds(rPct / 100)}</div>
-            <div style={{ fontSize: 11, color: R, fontWeight: 700, opacity: 0.7 }}>{rPct.toFixed(1)}% win</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <div style={{ width: "100%", height: 10, borderRadius: 99, background: "rgba(255,255,255,0.07)", overflow: "hidden", position: "relative" }}>
-              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${rPct}%`, background: `linear-gradient(90deg, ${R}cc, ${R}88)`, borderRadius: "99px 0 0 99px" }} />
-              <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: `${bPct}%`, background: `linear-gradient(270deg, ${B}cc, ${B}88)`, borderRadius: "0 99px 99px 0" }} />
-            </div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 700 }}>WIN PROBABILITY</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
-            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: B, letterSpacing: -1, lineHeight: 1 }}>{fmtOdds(bPct / 100)}</div>
-            <div style={{ fontSize: 11, color: B, fontWeight: 700, opacity: 0.7 }}>{bPct.toFixed(1)}% win</div>
-          </div>
-        </div>
-
-        {/* Method + finish */}
-        {(shownMethods.length > 0 || fight.predicted_method) && (
-          <div style={{ paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-              {shownMethods.map((m) => (
-                <span key={m} style={{ padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 800, background: `${MC[m]}18`, border: `1px solid ${MC[m]}35`, color: MC[m] }}>
-                  {m} {(methodProbs[m] ?? 0).toFixed(0)}%
-                </span>
-              ))}
-            </div>
-            {fight.predicted_method && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.30)", fontWeight: 800 }}>PREDICTED FINISH</span>
-                <span style={{ fontSize: 12, fontWeight: 900, color: MC[fight.predicted_method] || "#e8eef6" }}>
-                  {fight.predicted_method}{fight.predicted_round ? ` · Rd ${fight.predicted_round}` : ""}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-/* ─── Fighter autocomplete search ────────────────────────────────────────── */
+/* ── Fighter autocomplete ────────────────────────────────────────────────── */
 function FighterSearch({ value, onChange, placeholder, accent }) {
   const [query, setQuery] = useState(value || "");
   const [suggs, setSuggs] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [open,  setOpen]  = useState(false);
+  const [busy,  setBusy]  = useState(false);
   const timer = useRef(null);
-  const wrap = useRef(null);
+  const wrap  = useRef(null);
 
   useEffect(() => {
     if (!query.trim() || query === value) { setSuggs([]); setOpen(false); return; }
@@ -330,41 +254,46 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const pick = (n) => { setQuery(n); setSuggs([]); setOpen(false); onChange(n); };
-  const clear = () => { setQuery(""); setSuggs([]); setOpen(false); onChange(""); };
+  const pick  = (n) => { setQuery(n); setSuggs([]); setOpen(false); onChange(n); };
+  const clear = ()  => { setQuery(""); setSuggs([]); setOpen(false); onChange(""); };
 
   const base = {
-    width: "100%", padding: "12px 36px", borderRadius: 13,
-    border: `1px solid ${accent}55`, background: "rgba(255,255,255,0.06)",
-    color: "#e8eef6", outline: "none", boxSizing: "border-box", fontSize: 14, fontWeight: 600,
+    width: "100%", padding: "10px 14px", borderRadius: 7,
+    border: `1px solid ${accent ? accent + "44" : T.bd}`, background: T.surf,
+    color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box",
   };
 
   return (
     <div ref={wrap} style={{ position: "relative" }}>
-      <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", opacity: 0.38, pointerEvents: "none" }}>
-        {busy ? <Icon name="loader" size={15} /> : <Icon name="search" size={15} />}
-      </span>
-      <input style={base} placeholder={placeholder} value={query}
+      <input
+        style={base}
+        placeholder={placeholder}
+        value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => suggs.length && setOpen(true)}
-        autoComplete="off" />
-      {query && (
-        <button type="button" onClick={clear} style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.35)", padding: 2 }}>
-          <Icon name="x" size={14} />
+        autoComplete="off"
+      />
+      {(busy || query) && (
+        <button
+          type="button"
+          onClick={clear}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.dim, fontFamily: MONO, fontSize: 11, padding: 2 }}
+        >
+          {busy ? "···" : "×"}
         </button>
       )}
       {open && suggs.length > 0 && (
         <div style={{
           position: "absolute", zIndex: 60, top: "calc(100% + 4px)", left: 0, right: 0,
-          background: "rgba(8,12,22,0.98)", border: `1px solid ${accent}44`,
-          borderRadius: 13, maxHeight: 220, overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.65)",
+          background: "#0b0b12", border: `1px solid ${T.bd}`, borderRadius: 7,
+          maxHeight: 220, overflowY: "auto", boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
         }}>
           {suggs.slice(0, 20).map((n) => (
             <div key={n} onClick={() => pick(n)}
-              style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = `${accent}25`)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              style={{ padding: "9px 14px", cursor: "pointer", fontSize: 13, color: T.text, borderBottom: `1px solid ${T.bd}` }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = T.surf)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
               {n}
             </div>
           ))}
@@ -374,11 +303,11 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
   );
 }
 
-/* ─── Upcoming card view ─────────────────────────────────────────────────── */
+/* ── Upcoming card ───────────────────────────────────────────────────────── */
 function UpcomingCard({ isMobile }) {
-  const [data, setData] = useState(null);
+  const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(null);
+  const [err,     setErr]     = useState(null);
 
   async function load() {
     setLoading(true); setErr(null);
@@ -394,68 +323,40 @@ function UpcomingCard({ isMobile }) {
 
   useEffect(() => { load(); }, []);
 
-  if (loading) return (
-    <div style={{ textAlign: "center", padding: "80px 20px", display: "grid", gap: 16, justifyItems: "center" }}>
-      <Icon name="loader" size={44} color="#ef4444" />
-      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Scraping upcoming card &amp; running predictions…</div>
-      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>This may take 20–30 seconds</div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div style={{ padding: "60px 0" }}>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>scraping ufcstats.com · running predictions...</div>
+        <div style={{ fontFamily: MONO, fontSize: 11, marginTop: 6, color: "#252535" }}>~20–30 seconds</div>
+      </div>
+    );
+  }
 
-  if (err) return (
-    <div style={{ textAlign: "center", padding: "50px 20px", display: "grid", gap: 16, justifyItems: "center" }}>
-      <div style={{ fontSize: 14, color: "#ef4444" }}>⚠ {err}</div>
-      <button onClick={load} style={{
-        display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 13,
-        background: "rgba(239,68,68,0.13)", border: "1px solid rgba(239,68,68,0.32)",
-        color: "#ef4444", fontWeight: 800, cursor: "pointer", fontSize: 13,
-      }}><Icon name="refresh" size={15} /> Try Again</button>
-    </div>
-  );
+  if (err) {
+    return (
+      <div style={{ padding: "40px 0" }}>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: T.red, marginBottom: 14 }}>error: {err}</div>
+        <button onClick={load} style={{ fontFamily: MONO, fontSize: 12, color: T.dim, background: "none", border: `1px solid ${T.bd}`, padding: "7px 14px", borderRadius: 6, cursor: "pointer" }}>↻ retry</button>
+      </div>
+    );
+  }
 
   if (!data) return null;
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      {/* Event banner */}
-      <div style={{
-        padding: "20px 24px", borderRadius: 20,
-        background: "linear-gradient(135deg, rgba(239,68,68,0.11), rgba(59,130,246,0.07))",
-        border: "1px solid rgba(239,68,68,0.24)",
-        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
-      }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 16, marginBottom: 4, borderBottom: `1px solid ${T.bd}` }}>
         <div>
-          <div style={{
-            fontSize: isMobile ? 20 : 26, fontWeight: 1000, letterSpacing: -0.6,
-            background: "linear-gradient(90deg,#ef4444,#f97316 40%,#3b82f6)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>{data.event_name}</div>
-          <div style={{ display: "flex", gap: 14, marginTop: 5, flexWrap: "wrap" }}>
-            {data.event_date && (
-              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", display: "flex", gap: 5, alignItems: "center" }}>
-                <Icon name="calendar" size={13} color="rgba(255,255,255,0.35)" /> {data.event_date}
-              </span>
-            )}
-            {data.location && (
-              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", display: "flex", gap: 5, alignItems: "center" }}>
-                <Icon name="map" size={13} color="rgba(255,255,255,0.35)" /> {data.location}
-              </span>
-            )}
+          <div style={{ fontSize: isMobile ? 17 : 21, fontWeight: 800, letterSpacing: -0.5, color: T.text, marginBottom: 4 }}>
+            {data.event_name}
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
+            {[data.event_date, data.location, data.predictions?.length && `${data.predictions.length} fights`].filter(Boolean).join(" · ")}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ padding: "5px 14px", borderRadius: 99, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.10)", fontSize: 12, fontWeight: 700 }}>
-            {data.predictions?.length || 0} Fights
-          </span>
-          <button onClick={load} style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 11,
-            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.11)",
-            color: "rgba(255,255,255,0.65)", fontWeight: 700, cursor: "pointer", fontSize: 12,
-          }}><Icon name="refresh" size={14} /> Refresh</button>
-        </div>
+        <button onClick={load} style={{ fontFamily: MONO, fontSize: 11, color: T.dim, background: "none", border: `1px solid ${T.bd}`, padding: "6px 12px", borderRadius: 6, cursor: "pointer", flexShrink: 0 }}>↻ refresh</button>
       </div>
 
-      {/* Fight cards */}
       {(data.predictions || []).map((f, i) => (
         <FightCard key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i} isMobile={isMobile} />
       ))}
@@ -463,21 +364,26 @@ function UpcomingCard({ isMobile }) {
   );
 }
 
-/* ─── Custom matchup form ────────────────────────────────────────────────── */
+/* ── Custom matchup ──────────────────────────────────────────────────────── */
 function CustomMatchup({ isMobile }) {
-  const R = "#ef4444", B = "#3b82f6";
-  const [rn, setRn] = useState(""); const [bn, setBn] = useState("");
-  const [wc, setWc] = useState("Lightweight");
-  const [title, setTitle] = useState(false); const [rds, setRds] = useState(3);
-  const [ro, setRo] = useState(""); const [bo, setBo] = useState(""); const [showOdds, setShowOdds] = useState(false);
-  const [busy, setBusy] = useState(false); const [res, setRes] = useState(null); const [err, setErr] = useState(null);
+  const [rn,       setRn]       = useState("");
+  const [bn,       setBn]       = useState("");
+  const [wc,       setWc]       = useState("Lightweight");
+  const [title,    setTitle]    = useState(false);
+  const [rds,      setRds]      = useState(3);
+  const [ro,       setRo]       = useState("");
+  const [bo,       setBo]       = useState("");
+  const [showOdds, setShowOdds] = useState(false);
+  const [busy,     setBusy]     = useState(false);
+  const [res,      setRes]      = useState(null);
+  const [err,      setErr]      = useState(null);
 
   async function predict() {
-    if (!rn.trim() || !bn.trim()) { setErr("Please enter both fighter names."); return; }
+    if (!rn.trim() || !bn.trim()) { setErr("Enter both fighter names."); return; }
     setBusy(true); setErr(null); setRes(null);
     try {
       const body = { red_name: rn.trim(), blue_name: bn.trim(), weight_class: wc, is_title_fight: title, scheduled_rounds: rds };
-      if (showOdds && ro) body.red_odds = parseFloat(ro);
+      if (showOdds && ro) body.red_odds  = parseFloat(ro);
       if (showOdds && bo) body.blue_odds = parseFloat(bo);
       const r = await fetch(`${UFC_API}/predict`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json();
@@ -487,150 +393,104 @@ function CustomMatchup({ isMobile }) {
     finally { setBusy(false); }
   }
 
-  const sel = {
-    width: "100%", padding: "12px 12px", borderRadius: 13,
-    border: "1px solid rgba(255,255,255,0.11)", background: "rgba(255,255,255,0.06)",
-    color: "#e8eef6", outline: "none", cursor: "pointer", fontWeight: 700,
-    appearance: "none", WebkitAppearance: "none", fontSize: 14,
-  };
-  const inp = {
-    width: "100%", padding: "12px 14px", borderRadius: 13,
-    border: "1px solid rgba(255,255,255,0.11)", background: "rgba(255,255,255,0.06)",
-    color: "#e8eef6", outline: "none", boxSizing: "border-box", fontSize: 14,
-  };
-
-  function Toggle({ on, set, label }) {
-    return (
-      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", paddingTop: 8 }}>
-        <div style={{ width: 38, height: 22, borderRadius: 99, background: on ? "#3b82f6" : "rgba(255,255,255,0.12)", position: "relative", transition: "background 200ms", flexShrink: 0 }}>
-          <div style={{ position: "absolute", top: 3, left: on ? 18 : 3, width: 16, height: 16, borderRadius: 99, background: "white", transition: "left 200ms" }} />
-        </div>
-        <input type="checkbox" hidden checked={on} onChange={(e) => set(e.target.checked)} />
-        <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
-      </label>
-    );
-  }
+  const inp = { width: "100%", padding: "10px 14px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.surf, color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box" };
+  const sel = { ...inp, cursor: "pointer", appearance: "none", WebkitAppearance: "none" };
+  const lbl = { fontFamily: MONO, fontSize: 10, color: T.dim, letterSpacing: 0.8, display: "block", marginBottom: 6 };
 
   const fightCard = res ? {
     red_fighter: res.red_fighter, blue_fighter: res.blue_fighter,
-    winner: res.winner, winner_confidence: res.winner_confidence,
-    red_win_probability: res.red_win_probability, blue_win_probability: res.blue_win_probability,
-    predicted_method: res.predicted_method, method_confidence: res.method_confidence,
-    predicted_round: res.predicted_round, method_probs: res.method_probs,
-    r_elo: res.r_elo, b_elo: res.b_elo, weight_class: wc,
-    is_main_event: false, is_title_fight: title, value: res.value,
+    winner: res.winner, red_win_probability: res.red_win_probability, blue_win_probability: res.blue_win_probability,
+    predicted_method: res.predicted_method, predicted_round: res.predicted_round,
+    method_probs: res.method_probs, r_elo: res.r_elo, b_elo: res.b_elo,
+    weight_class: wc, is_main_event: false, is_title_fight: title,
   } : null;
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      {/* Fighter inputs */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", gap: 10, alignItems: "start" }}>
-        <div style={{ padding: 16, borderRadius: 18, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.22)" }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: R, letterSpacing: 1.2, marginBottom: 10 }}>🔴 RED CORNER</div>
-          <FighterSearch value={rn} onChange={setRn} placeholder="Search fighter…" accent={R} />
+    <div style={{ display: "grid", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={{ ...lbl, color: T.red }}>red corner</label>
+          <FighterSearch value={rn} onChange={setRn} placeholder="Search fighter…" accent={T.red} />
         </div>
-        <div style={{ alignSelf: "center", textAlign: "center", fontWeight: 1000, fontSize: isMobile ? 13 : 16, opacity: 0.35, padding: isMobile ? "2px" : "0 6px" }}>VS</div>
-        <div style={{ padding: 16, borderRadius: 18, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.22)" }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: B, letterSpacing: 1.2, marginBottom: 10 }}>BLUE CORNER 🔵</div>
-          <FighterSearch value={bn} onChange={setBn} placeholder="Search fighter…" accent={B} />
+        <div>
+          <label style={{ ...lbl, color: T.blue }}>blue corner</label>
+          <FighterSearch value={bn} onChange={setBn} placeholder="Search fighter…" accent={T.blue} />
         </div>
       </div>
 
-      {/* Settings */}
-      <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 14 }}>
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 900, letterSpacing: 0.8 }}>WEIGHT CLASS</label>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={lbl}>weight class</label>
           <div style={{ position: "relative" }}>
             <select style={sel} value={wc} onChange={(e) => setWc(e.target.value)}>
               {WEIGHT_CLASSES.map((w) => <option key={w} value={w}>{w}</option>)}
             </select>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.35 }}>▾</span>
+            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: T.dim, fontSize: 11 }}>▾</span>
           </div>
         </div>
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 900, letterSpacing: 0.8 }}>ROUNDS</label>
+        <div>
+          <label style={lbl}>rounds</label>
           <div style={{ position: "relative" }}>
             <select style={sel} value={rds} onChange={(e) => setRds(Number(e.target.value))}>
-              <option value={3}>3 Rounds</option>
-              <option value={5}>5 Rounds</option>
+              <option value={3}>3</option>
+              <option value={5}>5</option>
             </select>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.35 }}>▾</span>
+            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: T.dim, fontSize: 11 }}>▾</span>
           </div>
         </div>
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 900, letterSpacing: 0.8 }}>TITLE FIGHT</label>
-          <Toggle on={title} set={setTitle} label={title ? "Yes" : "No"} />
+        <div>
+          <label style={lbl}>title fight</label>
+          <button type="button" onClick={() => setTitle((v) => !v)} style={{ ...inp, cursor: "pointer", color: title ? T.green : T.dim, textAlign: "left" }}>{title ? "yes" : "no"}</button>
         </div>
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 900, letterSpacing: 0.8 }}>INCLUDE ODDS</label>
-          <Toggle on={showOdds} set={setShowOdds} label={showOdds ? "Yes" : "No"} />
+        <div>
+          <label style={lbl}>include odds</label>
+          <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? T.green : T.dim, textAlign: "left" }}>{showOdds ? "yes" : "no"}</button>
         </div>
       </div>
 
       {showOdds && (
-        <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div style={{ display: "grid", gap: 6 }}>
-            <label style={{ fontSize: 10, color: R, fontWeight: 900, letterSpacing: 0.8 }}>RED ODDS (American)</label>
-            <input style={{ ...inp, borderColor: `${R}44` }} placeholder="-200 or +150" value={ro} onChange={(e) => setRo(e.target.value)} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ ...lbl, color: T.red }}>red odds (american)</label>
+            <input style={{ ...inp, borderColor: `${T.red}44` }} placeholder="-200 or +150" value={ro} onChange={(e) => setRo(e.target.value)} />
           </div>
-          <div style={{ display: "grid", gap: 6 }}>
-            <label style={{ fontSize: 10, color: B, fontWeight: 900, letterSpacing: 0.8 }}>BLUE ODDS (American)</label>
-            <input style={{ ...inp, borderColor: `${B}44` }} placeholder="-200 or +150" value={bo} onChange={(e) => setBo(e.target.value)} />
+          <div>
+            <label style={{ ...lbl, color: T.blue }}>blue odds (american)</label>
+            <input style={{ ...inp, borderColor: `${T.blue}44` }} placeholder="-200 or +150" value={bo} onChange={(e) => setBo(e.target.value)} />
           </div>
         </div>
       )}
 
       <button type="button" disabled={busy} onClick={predict} style={{
-        padding: "15px 24px", borderRadius: 16, border: "none",
-        background: busy ? "rgba(255,255,255,0.09)" : "linear-gradient(135deg,#ef4444,#f97316 50%,#3b82f6)",
-        color: "white", fontWeight: 1000, fontSize: 15, cursor: busy ? "default" : "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-        opacity: busy ? 0.5 : 1,
-        boxShadow: busy ? "none" : "0 8px 28px rgba(239,68,68,0.32)",
+        padding: "11px 20px", borderRadius: 7, border: `1px solid ${busy ? T.bd : T.dim}`,
+        background: "none", color: busy ? T.dim : T.text, fontFamily: MONO,
+        fontSize: 13, cursor: busy ? "default" : "pointer", letterSpacing: 0.5,
+        transition: "border-color 150ms",
       }}>
-        {busy ? <Icon name="loader" size={20} /> : <Icon name="zap" size={20} />}
-        {busy ? "Analyzing…" : "Predict Fight"}
+        {busy ? "analyzing..." : "→ predict fight"}
       </button>
 
-      {err && <div style={{ padding: "11px 16px", borderRadius: 13, background: "rgba(239,68,68,0.09)", border: "1px solid rgba(239,68,68,0.28)", fontSize: 13, color: "#ef4444" }}>{err}</div>}
+      {err && <div style={{ fontFamily: MONO, fontSize: 12, color: T.red }}>error: {err}</div>}
 
       {fightCard && (
-        <div style={{ animation: "fiup 380ms ease both", display: "grid", gap: 12 }}>
+        <div style={{ animation: "fd 280ms ease both" }}>
           <FightCard fight={fightCard} idx={0} isMobile={isMobile} />
           {res.value && res.value.r_vegas_pct > 0 && (
-            <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ padding: "8px 14px", background: "rgba(0,0,0,0.25)", fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.35)" }}>
-                VALUE ANALYSIS
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+            <div style={{ paddingTop: 16, marginTop: 4 }}>
+              <Lbl>value analysis</Lbl>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 {[
-                  { label: res.red_fighter, model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: R },
-                  { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: B },
-                ].map((f, fi) => (
-                  <div key={f.label} style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", borderRight: fi === 0 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                    <div style={{ fontWeight: 900, fontSize: 12, color: f.color, marginBottom: 8 }}>{f.label}</div>
-                    <div style={{ display: "grid", gap: 5, fontSize: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Model odds</span>
-                        <span style={{ fontWeight: 900, color: f.color }}>{fmtOdds(f.model / 100)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Book odds (vig-adj)</span>
-                        <span style={{ fontWeight: 900 }}>{fmtOdds(f.vegas / 100)}</span>
-                      </div>
-                      <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Edge</span>
-                        <span style={{ fontWeight: 900, color: f.edge >= 8 ? "#22c55e" : f.edge >= 0 ? "rgba(255,255,255,0.7)" : "#ef4444" }}>
-                          {f.edge >= 0 ? "+" : ""}{f.edge?.toFixed(1)}%
-                        </span>
-                      </div>
-                      {f.kelly > 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                          <span style={{ color: "rgba(255,255,255,0.38)" }}>Kelly (¼)</span>
-                          <span style={{ fontWeight: 900, color: "#22c55e" }}>{(f.kelly * 0.25).toFixed(1)}% bankroll</span>
-                        </div>
-                      )}
+                  { label: res.red_fighter,  model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: T.red },
+                  { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: T.blue },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: f.color, marginBottom: 8 }}>{f.label}</div>
+                    <div style={{ display: "grid", gap: 5, fontFamily: MONO, fontSize: 12 }}>
+                      <Row label="model"        val={fmtOdds(f.model / 100)} valColor={f.color} />
+                      <Row label="book (vig-adj)" val={fmtOdds(f.vegas / 100)} />
+                      <div style={{ height: 1, background: T.faint, margin: "2px 0" }} />
+                      <Row label="edge" val={`${f.edge >= 0 ? "+" : ""}${f.edge?.toFixed(1)}%`} valColor={f.edge >= 8 ? T.green : f.edge >= 0 ? T.text : T.red} />
+                      {f.kelly > 0 && <Row label="kelly (¼)" val={`${(f.kelly * 0.25).toFixed(1)}%`} valColor={T.green} />}
                     </div>
                   </div>
                 ))}
@@ -643,45 +503,47 @@ function CustomMatchup({ isMobile }) {
   );
 }
 
-/* ─── UFC Page ───────────────────────────────────────────────────────────── */
+function Row({ label, val, valColor }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+      <span style={{ color: T.dim }}>{label}</span>
+      <span style={{ color: valColor || T.text }}>{val}</span>
+    </div>
+  );
+}
+
+/* ── UFC Page ────────────────────────────────────────────────────────────── */
 function UFCPage({ isMobile }) {
   const [tab, setTab] = useState("upcoming");
+
   return (
-    <div style={{ display: "grid", gap: 24 }}>
-      {/* Page header */}
-      <div style={{ textAlign: "center", padding: isMobile ? "16px 0 6px" : "24px 0 8px" }}>
-        <h1 style={{ margin: "0 0 10px", fontSize: isMobile ? 28 : 44, fontWeight: 1000, letterSpacing: -1.5, lineHeight: 1 }}>
-          <span style={{ background: "linear-gradient(90deg,#ef4444 0%,#f97316 35%,#3b82f6 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            UFC Prediction Model
-          </span>
-        </h1>
-        <div style={{ fontSize: isMobile ? 13 : 15, color: "rgba(255,255,255,0.4)", maxWidth: 520, margin: "0 auto 18px" }}>
-          ML-powered predictions using XGBoost + LightGBM ensembles, Elo ratings, and Vegas odds analysis
+    <div>
+      <div style={{ paddingBottom: 20, marginBottom: 24, borderBottom: `1px solid ${T.bd}` }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>ufc @</span>
+          <h1 style={{ margin: 0, fontSize: isMobile ? 20 : 26, fontWeight: 800, letterSpacing: -0.6, color: T.text }}>
+            fight-prediction-engine
+          </h1>
+          <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}40`, padding: "2px 7px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>
         </div>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          {[["77%", "Win Accuracy"], ["7,190", "Fights Trained"], ["Elo + ML", "Ensemble"], ["Kelly", "Bet Sizing"]].map(([val, lbl]) => (
-            <div key={lbl} style={{ padding: "8px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 1000, color: "#ef4444" }}>{val}</span>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", fontWeight: 800, letterSpacing: 0.5 }}>{lbl}</span>
-            </div>
-          ))}
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
+          65.6% cv accuracy · 7,190 fights trained · xgboost + lightgbm · elo ratings · kelly criterion
         </div>
       </div>
 
-      {/* Sub-tab switcher */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div style={{ display: "flex", gap: 6, padding: "5px", borderRadius: 16, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          {[["upcoming", "🗓  Upcoming Card"], ["custom", "🔍  Custom Matchup"]].map(([id, lbl]) => (
-            <button key={id} type="button" onClick={() => setTab(id)} style={{
-              padding: "10px 22px", borderRadius: 12,
-              background: tab === id ? "linear-gradient(135deg,rgba(239,68,68,0.28),rgba(59,130,246,0.20))" : "transparent",
-              border: tab === id ? "1px solid rgba(239,68,68,0.38)" : "1px solid transparent",
-              color: tab === id ? "#fff" : "rgba(255,255,255,0.42)",
-              fontWeight: tab === id ? 900 : 700, cursor: "pointer", fontSize: isMobile ? 13 : 14,
-              transition: "all 160ms",
-            }}>{lbl}</button>
-          ))}
-        </div>
+      <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: `1px solid ${T.bd}` }}>
+        {[["upcoming", "upcoming card"], ["custom", "custom matchup"]].map(([id, lbl]) => (
+          <button key={id} type="button" onClick={() => setTab(id)} style={{
+            background: "none", border: "none", cursor: "pointer",
+            fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
+            color: tab === id ? T.text : T.dim,
+            padding: "0 0 10px", marginRight: 24,
+            borderBottom: `2px solid ${tab === id ? T.text : "transparent"}`,
+            marginBottom: -1, transition: "color 150ms",
+          }}>
+            {lbl}
+          </button>
+        ))}
       </div>
 
       {tab === "upcoming" ? <UpcomingCard isMobile={isMobile} /> : <CustomMatchup isMobile={isMobile} />}
@@ -689,16 +551,20 @@ function UFCPage({ isMobile }) {
   );
 }
 
-/* ─── Contact form ───────────────────────────────────────────────────────── */
+/* ── Contact form ────────────────────────────────────────────────────────── */
 function ContactForm() {
-  const [nm, setNm] = useState(""); const [em, setEm] = useState(""); const [msg, setMsg] = useState("");
+  const [nm,    setNm]    = useState("");
+  const [em,    setEm]    = useState("");
+  const [msg,   setMsg]   = useState("");
   const [toast, setToast] = useState("");
-  const inp = { width: "100%", padding: "12px 14px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.11)", background: "rgba(255,255,255,0.06)", color: "#e8eef6", outline: "none", boxSizing: "border-box", fontSize: 14 };
+
+  const inp = { width: "100%", padding: "10px 14px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.surf, color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box" };
 
   function submit(e) {
     e.preventDefault();
     if (!nm.trim() || !em.includes("@") || msg.trim().length < 10) {
-      setToast("Name, valid email, and message (10+ chars) required."); setTimeout(() => setToast(""), 2400); return;
+      setToast("Name, valid email, and message (10+ chars) required.");
+      setTimeout(() => setToast(""), 2400); return;
     }
     const s = encodeURIComponent(`Portfolio message from ${nm.trim()}`);
     const b = encodeURIComponent(`Name: ${nm.trim()}\nEmail: ${em.trim()}\n\n${msg.trim()}`);
@@ -707,331 +573,303 @@ function ContactForm() {
   }
 
   return (
-    <div style={{ padding: "22px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-      <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 16 }}>Send a Message</div>
-      <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-        <input style={inp} placeholder="Your name" value={nm} onChange={(e) => setNm(e.target.value)} />
-        <input style={inp} placeholder="Your email" value={em} onChange={(e) => setEm(e.target.value)} />
-        <textarea style={{ ...inp, minHeight: 110, resize: "vertical" }} placeholder="What would you like to talk about?" value={msg} onChange={(e) => setMsg(e.target.value)} />
-        <button type="submit" style={{ padding: "13px 20px", borderRadius: 13, border: "none", background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "white", fontWeight: 900, cursor: "pointer", fontSize: 14, boxShadow: "0 6px 22px rgba(59,130,246,0.30)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Icon name="mail" size={16} /> Send Message
-        </button>
-      </form>
-      {toast && <div style={{ marginTop: 10, fontSize: 13, color: "rgba(255,255,255,0.45)" }}>{toast}</div>}
-    </div>
+    <form onSubmit={submit} style={{ display: "grid", gap: 10, marginTop: 28 }}>
+      <Lbl>send a message</Lbl>
+      <input style={inp} placeholder="Your name"  value={nm}  onChange={(e) => setNm(e.target.value)} />
+      <input style={inp} placeholder="Your email" value={em}  onChange={(e) => setEm(e.target.value)} />
+      <textarea style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="What would you like to talk about?" value={msg} onChange={(e) => setMsg(e.target.value)} />
+      <button type="submit" style={{ padding: "11px 20px", borderRadius: 7, border: `1px solid ${T.bd}`, background: "none", color: T.text, fontFamily: MONO, fontSize: 13, cursor: "pointer", textAlign: "left", letterSpacing: 0.5 }}>
+        → send
+      </button>
+      {toast && <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{toast}</div>}
+    </form>
   );
 }
 
-/* ─── Main App ───────────────────────────────────────────────────────────── */
+/* ── Main App ────────────────────────────────────────────────────────────── */
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [page,     setPage]     = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
-  const W = useWindowSize();
-  const isMobile = W < 768;
-  const bgStyle = useAnimatedBg();
-  const contentKey = useRef(0);
+  const W        = useWindowSize();
+  const isMobile = W < 720;
 
-  function go(p) { setPage(p); setMenuOpen(false); contentKey.current++; window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function go(p) { setPage(p); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
-  const NAV_LINKS = [["home","Home","home"],["projects","Projects","code"],["resume","Resume","doc"],["contact","Contact","mail"]];
-
-  function NavBtn({ id, label, icon }) {
-    const active = page === id;
-    return (
-      <button type="button" onClick={() => go(id)} style={{
-        padding: isMobile ? "12px 16px" : "9px 14px", borderRadius: 12,
-        border: active ? "1px solid rgba(255,255,255,0.20)" : "1px solid transparent",
-        background: active ? "rgba(255,255,255,0.09)" : "transparent",
-        color: active ? "#fff" : "rgba(255,255,255,0.50)",
-        fontWeight: active ? 900 : 700, cursor: "pointer", fontSize: 14,
-        display: "flex", alignItems: "center", gap: 7, transition: "all 140ms",
-        width: isMobile ? "100%" : "auto",
-      }}>
-        <Icon name={icon} size={15} /> {label}
-      </button>
-    );
-  }
+  const NAV = [["home", "home"], ["projects", "projects"], ["resume", "resume"], ["contact", "contact"]];
 
   return (
-    <div style={{ minHeight: "100vh", color: "#e8eef6", fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", ...bgStyle, position: "relative", overflowX: "hidden" }}>
-      {/* Grid overlay */}
-      <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 1, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize: "52px 52px", maskImage: "radial-gradient(ellipse 90% 50% at 50% 0%,black,transparent 75%)" }} />
-
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: SANS }}>
       <style>{`
-        *{box-sizing:border-box;}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes fiup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.55}}
-        @keyframes pagein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-        button:not([disabled]):hover{filter:brightness(1.09);}
-        a:hover{filter:brightness(1.08);}
-        ::-webkit-scrollbar{width:5px}
-        ::-webkit-scrollbar-track{background:rgba(255,255,255,0.02)}
-        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.10);border-radius:99px}
-        select option{background:#0a0e1a}
+        * { box-sizing: border-box; }
+        @keyframes fd { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        button:not([disabled]):hover { opacity: 0.75; }
+        a:hover { opacity: 0.70; }
+        select option { background: #0e0e13; color: #e2e2ee; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 99px; }
+        ::placeholder { color: #50507a; }
       `}</style>
 
-      {/* ── NAVBAR ──────────────────────────────────────────────────────── */}
-      <header style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,8,16,0.88)", backdropFilter: "blur(22px) saturate(160%)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "13px 16px" : "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: isMobile ? "auto" : 62 }}>
-          {/* Brand */}
-          <button type="button" onClick={() => go("home")} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 11, background: "linear-gradient(135deg,rgba(139,92,246,0.45),rgba(59,130,246,0.35))", border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 1000, fontSize: 13, letterSpacing: -0.5 }}>KS</div>
-            {!isMobile && <div><div style={{ fontWeight: 1000, fontSize: 15, letterSpacing: -0.4 }}>Kyle Suda</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.36)" }}>Cybersecurity · Dev · ML</div></div>}
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: `${T.bg}f0`, backdropFilter: "blur(18px)",
+        borderBottom: `1px solid ${T.bd}`,
+      }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "15px 20px" : "0 0", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: isMobile ? "auto" : 54 }}>
+          <button type="button" onClick={() => go("home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontWeight: 800, fontSize: 15, padding: 0, letterSpacing: -0.3 }}>
+            Kyle Suda
           </button>
 
-          {/* Desktop nav */}
           {!isMobile && (
-            <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
-              {NAV_LINKS.map(([id, label, icon]) => <NavBtn key={id} id={id} label={label} icon={icon} />)}
-              <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.07)", margin: "0 8px" }} />
+            <nav style={{ display: "flex", gap: 22, alignItems: "center" }}>
+              {NAV.map(([id, lbl]) => (
+                <button key={id} type="button" onClick={() => go(id)} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
+                  color: page === id ? T.text : T.dim, padding: 0,
+                }}>
+                  {lbl}
+                </button>
+              ))}
+              <span style={{ color: T.faint, userSelect: "none" }}>·</span>
               <button type="button" onClick={() => go("ufc")} style={{
-                padding: "9px 18px", borderRadius: 12, cursor: "pointer", fontWeight: 900, fontSize: 14,
-                background: page === "ufc" ? "linear-gradient(135deg,rgba(239,68,68,0.38),rgba(59,130,246,0.22))" : "linear-gradient(135deg,rgba(239,68,68,0.14),rgba(59,130,246,0.09))",
-                border: page === "ufc" ? "1px solid rgba(239,68,68,0.52)" : "1px solid rgba(239,68,68,0.24)",
-                color: page === "ufc" ? "#fff" : "rgba(255,190,190,0.85)",
-                display: "flex", alignItems: "center", gap: 7, transition: "all 200ms",
-                boxShadow: page === "ufc" ? "0 0 22px rgba(239,68,68,0.22)" : "none",
+                background: "none", cursor: "pointer",
+                border: `1px solid ${page === "ufc" ? `${T.red}55` : T.bd}`,
+                borderRadius: 6, padding: "6px 12px",
+                fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
+                color: page === "ufc" ? T.red : T.dim,
+                transition: "border-color 150ms, color 150ms",
               }}>
-                <Icon name="zap" size={15} /> UFC Prediction Model
+                ufc predictor
               </button>
             </nav>
           )}
 
-          {/* Mobile controls */}
           {isMobile && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button type="button" onClick={() => go("ufc")} style={{ padding: "8px 12px", borderRadius: 11, border: "1px solid rgba(239,68,68,0.35)", background: page === "ufc" ? "rgba(239,68,68,0.22)" : "rgba(239,68,68,0.12)", color: "#ef4444", fontWeight: 900, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
-                <Icon name="zap" size={14} /> UFC
-              </button>
-              <button type="button" onClick={() => setMenuOpen((m) => !m)} style={{ padding: "8px 9px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.11)", background: "rgba(255,255,255,0.06)", color: "inherit", cursor: "pointer" }}>
-                <Icon name={menuOpen ? "x" : "menu"} size={20} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => go("ufc")} style={{ background: "none", border: `1px solid ${T.red}44`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontFamily: MONO, fontSize: 11, color: T.red }}>ufc</button>
+              <button type="button" onClick={() => setMenuOpen((m) => !m)} style={{ background: "none", border: `1px solid ${T.bd}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: T.dim, fontFamily: MONO, fontSize: 14 }}>
+                {menuOpen ? "×" : "≡"}
               </button>
             </div>
           )}
         </div>
 
-        {/* Mobile menu dropdown */}
         {isMobile && menuOpen && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "10px 16px 14px", display: "grid", gap: 4, background: "rgba(6,8,16,0.96)" }}>
-            {NAV_LINKS.map(([id, label, icon]) => <NavBtn key={id} id={id} label={label} icon={icon} />)}
+          <div style={{ borderTop: `1px solid ${T.bd}`, padding: "10px 20px 14px", background: T.bg, display: "grid", gap: 0 }}>
+            {NAV.map(([id, lbl]) => (
+              <button key={id} type="button" onClick={() => go(id)} style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontFamily: MONO, fontSize: 13, color: page === id ? T.text : T.dim,
+                padding: "9px 0", textAlign: "left", borderBottom: `1px solid ${T.faint}`,
+              }}>
+                {lbl}
+              </button>
+            ))}
           </div>
         )}
       </header>
 
-      {/* ── PAGE CONTENT ────────────────────────────────────────────────── */}
-      <main key={page} style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "22px 16px 70px" : "34px 28px 90px", position: "relative", zIndex: 2, animation: "pagein 340ms ease both" }}>
+      {/* ── Page ─────────────────────────────────────────────────────────── */}
+      <main key={page} style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "44px 20px 90px" : "56px 0 110px", animation: "fd 220ms ease both" }}>
 
-        {/* ═══════ UFC PAGE ═══════════════════════════════════════════════ */}
+        {/* ═══ UFC ═════════════════════════════════════════════════════════ */}
         {page === "ufc" && <UFCPage isMobile={isMobile} />}
 
-        {/* ═══════ HOME ═══════════════════════════════════════════════════ */}
+        {/* ═══ HOME ════════════════════════════════════════════════════════ */}
         {page === "home" && (
-          <div style={{ display: "grid", gap: isMobile ? 16 : 20 }}>
+          <div style={{ display: "grid", gap: 60 }}>
 
             {/* Hero */}
-            <div style={{ padding: isMobile ? "28px 22px" : "42px 38px", borderRadius: 28, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(18px)", boxShadow: "0 24px 60px rgba(0,0,0,0.45)", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: "-25%", right: "5%", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.14) 0%,transparent 70%)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", bottom: "-30%", left: "5%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.10) 0%,transparent 70%)", pointerEvents: "none" }} />
-              <div style={{ position: "relative", zIndex: 1, display: "grid", gap: 16 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[CONTENT.location, "Open to Opportunities", "USF Student"].map((t) => (
-                    <span key={t} style={{ padding: "5px 12px", borderRadius: 99, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.11)", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)" }}>{t}</span>
-                  ))}
-                </div>
-                <div>
-                  <h1 style={{ margin: "0 0 8px", fontSize: isMobile ? 36 : 58, fontWeight: 1000, letterSpacing: -2, lineHeight: 0.98, color: "#fff" }}>Kyle Suda</h1>
-                  <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, background: "linear-gradient(90deg,#8b5cf6,#3b82f6,#22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{CONTENT.title}</div>
-                </div>
-                <div style={{ fontSize: isMobile ? 14 : 16, color: "rgba(255,255,255,0.52)", lineHeight: 1.72, maxWidth: 660 }}>{CONTENT.tagline}</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-                  <a href={`mailto:${CONTENT.contact.email}`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 20px", borderRadius: 13, textDecoration: "none", background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "white", fontWeight: 900, fontSize: 14, boxShadow: "0 8px 26px rgba(59,130,246,0.32)" }}>
-                    <Icon name="mail" size={16} /> Email Me
-                  </a>
-                  <a href={CONTENT.contact.github} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 20px", borderRadius: 13, textDecoration: "none", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.82)", fontWeight: 900, fontSize: 14 }}>
-                    <Icon name="link" size={16} /> GitHub
-                  </a>
-                  <button type="button" onClick={() => go("ufc")} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 20px", borderRadius: 13, background: "rgba(239,68,68,0.14)", border: "1px solid rgba(239,68,68,0.32)", color: "#ef4444", fontWeight: 900, cursor: "pointer", fontSize: 14 }}>
-                    <Icon name="zap" size={16} /> Try UFC Predictor
-                  </button>
-                </div>
+            <div>
+              <h1 style={{ margin: "0 0 6px", fontSize: isMobile ? 34 : 46, fontWeight: 800, letterSpacing: -1.4, color: T.text, lineHeight: 1 }}>
+                {CONTENT.name}
+              </h1>
+              <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginBottom: 20, letterSpacing: 0.5 }}>
+                {CONTENT.role}
+              </div>
+              <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.8, maxWidth: 540 }}>
+                {CONTENT.tagline}
+              </div>
+              <div style={{ display: "flex", gap: 18, marginTop: 22, flexWrap: "wrap", alignItems: "center" }}>
+                <a href={`mailto:${CONTENT.contact.email}`} style={{ fontFamily: MONO, fontSize: 12, color: T.text, textDecoration: "none", borderBottom: `1px solid ${T.dim}` }}>email</a>
+                <a href={CONTENT.contact.github}   target="_blank" rel="noreferrer" style={{ fontFamily: MONO, fontSize: 12, color: T.dim, textDecoration: "none", borderBottom: `1px solid ${T.faint}` }}>github</a>
+                <a href={CONTENT.contact.linkedin} target="_blank" rel="noreferrer" style={{ fontFamily: MONO, fontSize: 12, color: T.dim, textDecoration: "none", borderBottom: `1px solid ${T.faint}` }}>linkedin</a>
+                <button type="button" onClick={() => go("ufc")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: MONO, fontSize: 12, color: T.red, padding: 0, borderBottom: `1px solid ${T.red}55` }}>
+                  ufc predictor →
+                </button>
               </div>
             </div>
 
-            {/* Highlights + Skills */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.3fr 0.7fr", gap: 16 }}>
-              <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-                <div style={{ fontWeight: 1000, fontSize: 16, marginBottom: 3 }}>About Me</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.32)", marginBottom: 16 }}>What I'm working on</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                  {CONTENT.highlights.map((h) => (
-                    <div key={h.label} style={{ padding: 14, borderRadius: 15, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", fontWeight: 700 }}>{h.label}</div>
-                      <div style={{ fontWeight: 900, letterSpacing: -0.3, marginTop: 4, fontSize: 13 }}>{h.value}</div>
-                    </div>
-                  ))}
+            {/* Projects */}
+            <div>
+              <Lbl>projects</Lbl>
+              {CONTENT.projects.map((p, i) => (
+                <div key={p.id} style={{ borderBottom: `1px solid ${T.bd}`, paddingBottom: 22, marginBottom: 22, animation: `fd 200ms ease ${i * 55}ms both` }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{p.id} @</span>
+                    <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.3 }}>{p.name}</span>
+                    {p.live && <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}44`, padding: "1px 6px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>}
+                  </div>
+                  <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.7, maxWidth: 580, marginBottom: 10 }}>{p.blurb}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    {p.stack.map((t) => <span key={t} style={{ fontFamily: MONO, fontSize: 10, color: "#30304a", letterSpacing: 0.2 }}>{t}</span>)}
+                    {p.page && <button type="button" onClick={() => go(p.page)} style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, background: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "3px 10px", cursor: "pointer" }}>open →</button>}
+                    {p.github && <a href={p.github} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, textDecoration: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "3px 10px" }}>github →</a>}
+                  </div>
                 </div>
-                {CONTENT.about.map((p, i) => <div key={i} style={{ fontSize: 13, color: "rgba(255,255,255,0.52)", lineHeight: 1.68, marginBottom: i < CONTENT.about.length - 1 ? 8 : 0 }}>{p}</div>)}
-              </div>
-              <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", display: "grid", gap: 16, alignContent: "start" }}>
-                <div><div style={{ fontWeight: 1000, fontSize: 16, marginBottom: 3 }}>Skills</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.32)" }}>Tech snapshot</div></div>
-                {Object.entries(CONTENT.skills).map(([group, items]) => (
-                  <div key={group} style={{ display: "grid", gap: 7 }}>
-                    <div style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,0.42)", letterSpacing: 0.6 }}>{group}</div>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                      {items.map((s) => <span key={s} style={{ padding: "4px 9px", borderRadius: 99, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.60)" }}>{s}</span>)}
-                    </div>
+              ))}
+            </div>
+
+            {/* About + Skills */}
+            <div>
+              <Lbl>about</Lbl>
+              {CONTENT.about.map((p, i) => (
+                <div key={i} style={{ fontSize: 13, color: T.dim, lineHeight: 1.8, marginBottom: 10 }}>{p}</div>
+              ))}
+              <div style={{ marginTop: 24, display: "grid", gap: 10 }}>
+                {Object.entries(CONTENT.skills).map(([cat, items]) => (
+                  <div key={cat} style={{ display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 64, flexShrink: 0 }}>{cat}</span>
+                    <span style={{ fontSize: 13, color: T.dim }}>{items.join(" · ")}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* UFC project CTA */}
-            <div style={{ padding: isMobile ? "22px 20px" : "26px 32px", borderRadius: 22, position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(239,68,68,0.10),rgba(6,8,16,0) 60%,rgba(59,130,246,0.08))", border: "1px solid rgba(239,68,68,0.24)", boxShadow: "0 0 70px rgba(239,68,68,0.06)" }}>
-              <div style={{ position: "absolute", top: "-20%", right: "0%", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle,rgba(239,68,68,0.13) 0%,transparent 70%)", pointerEvents: "none" }} />
-              <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-                <div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ padding: "3px 10px", borderRadius: 99, background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.36)", color: "#ef4444", fontSize: 10, fontWeight: 900 }}>★ FEATURED PROJECT</span>
+            {/* Experience */}
+            <div>
+              <Lbl>experience</Lbl>
+              <div style={{ display: "grid", gap: 22 }}>
+                {CONTENT.experience.map((e) => (
+                  <div key={e.role}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{e.role}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {e.org}</span>
+                      </div>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{e.timeframe}</span>
+                    </div>
+                    {e.points.map((pt) => <div key={pt} style={{ fontSize: 12, color: T.dim, paddingLeft: 12, borderLeft: `2px solid ${T.faint}`, marginBottom: 4, lineHeight: 1.6 }}>{pt}</div>)}
                   </div>
-                  <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 1000, letterSpacing: -0.5, marginBottom: 7 }}>UFC Fight Prediction Engine</div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.50)", maxWidth: 480, lineHeight: 1.6 }}>77% win accuracy · XGBoost + LightGBM · Elo system · 7,190 fights · Value bet detection</div>
-                </div>
-                <button type="button" onClick={() => go("ufc")} style={{ padding: "14px 26px", borderRadius: 15, border: "none", background: "linear-gradient(135deg,#ef4444,#f97316)", color: "white", fontWeight: 1000, cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexShrink: 0, boxShadow: "0 8px 28px rgba(239,68,68,0.40)" }}>
-                  <Icon name="zap" size={18} /> Try It Live →
-                </button>
+                ))}
               </div>
             </div>
+
+            {/* Education */}
+            <div>
+              <Lbl>education</Lbl>
+              {CONTENT.education.map((ed) => (
+                <div key={ed.school} style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{ed.school}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {ed.program}</span>
+                  </div>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{ed.timeframe}</span>
+                </div>
+              ))}
+            </div>
+
           </div>
         )}
 
-        {/* ═══════ PROJECTS ═══════════════════════════════════════════════ */}
+        {/* ═══ PROJECTS ════════════════════════════════════════════════════ */}
         {page === "projects" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ marginBottom: 4 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: isMobile ? 26 : 36, fontWeight: 1000, letterSpacing: -0.9 }}>Projects</h2>
-              <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 14 }}>Selected work</div>
-            </div>
-            {CONTENT.projects.map((p, pi) => (
-              <div key={p.name} style={{ padding: 24, borderRadius: 22, animation: `fiup 360ms ease ${pi * 70}ms both`, background: p.featured ? "linear-gradient(135deg,rgba(239,68,68,0.08),rgba(59,130,246,0.05))" : "rgba(255,255,255,0.04)", border: p.featured ? "1px solid rgba(239,68,68,0.24)" : "1px solid rgba(255,255,255,0.09)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-                      <span style={{ fontWeight: 1000, fontSize: 18, letterSpacing: -0.4 }}>{p.name}</span>
-                      {p.featured && <span style={{ padding: "3px 9px", borderRadius: 99, background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.34)", color: "#ef4444", fontSize: 10, fontWeight: 900 }}>★ FEATURED</span>}
-                    </div>
-                    <div style={{ fontSize: 14, color: "rgba(255,255,255,0.52)", lineHeight: 1.65, maxWidth: 580 }}>{p.blurb}</div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    {p.stack.map((t) => <span key={t} style={{ padding: "5px 10px", borderRadius: 99, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.60)" }}>{t}</span>)}
-                  </div>
+          <div>
+            <h2 style={{ margin: "0 0 36px", fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>projects</h2>
+            {CONTENT.projects.map((p, i) => (
+              <div key={p.id} style={{ borderBottom: `1px solid ${T.bd}`, paddingBottom: 26, marginBottom: 26, animation: `fd 200ms ease ${i * 55}ms both` }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{p.id} @</span>
+                  <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.4 }}>{p.name}</span>
+                  {p.live && <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}44`, padding: "2px 7px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>}
                 </div>
-                <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "0 0 12px" }} />
-                <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 7 }}>
-                  {p.bullets.map((b) => <li key={b} style={{ fontSize: 13, color: "rgba(255,255,255,0.50)", lineHeight: 1.65 }}>{b}</li>)}
-                </ul>
-                {p.featured && (
-                  <div style={{ marginTop: 16 }}>
-                    <button type="button" onClick={() => go("ufc")} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 18px", borderRadius: 13, border: "none", background: "linear-gradient(135deg,#ef4444,#f97316)", color: "white", fontWeight: 900, cursor: "pointer", fontSize: 13, boxShadow: "0 6px 20px rgba(239,68,68,0.34)" }}>
-                      <Icon name="zap" size={15} /> Try It Live →
-                    </button>
-                  </div>
-                )}
+                <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.75, maxWidth: 580, marginBottom: 14 }}>{p.blurb}</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {p.stack.map((t) => <span key={t} style={{ fontFamily: MONO, fontSize: 10, color: T.dim, background: T.surf, border: `1px solid ${T.bd}`, padding: "3px 8px", borderRadius: 5 }}>{t}</span>)}
+                  {p.page   && <button type="button" onClick={() => go(p.page)} style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.text, background: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "5px 14px", cursor: "pointer" }}>open →</button>}
+                  {p.github && <a href={p.github} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, textDecoration: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "5px 14px" }}>github →</a>}
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ═══════ RESUME ═════════════════════════════════════════════════ */}
+        {/* ═══ RESUME ══════════════════════════════════════════════════════ */}
         {page === "resume" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ marginBottom: 4 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: isMobile ? 26 : 36, fontWeight: 1000, letterSpacing: -0.9 }}>Resume</h2>
-              <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 14 }}>Experience & Education</div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr", gap: 16 }}>
-              <div style={{ display: "grid", gap: 16 }}>
-                {[{ title: "Experience", items: CONTENT.experience, render: (e) => (
-                  <div key={e.role}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                      <div><div style={{ fontWeight: 900, fontSize: 14 }}>{e.role}</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.40)", marginTop: 2 }}>{e.org}</div></div>
-                      <span style={{ padding: "4px 10px", borderRadius: 99, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", alignSelf: "flex-start" }}>{e.timeframe}</span>
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: 16, display: "grid", gap: 5 }}>{e.points.map((pt) => <li key={pt} style={{ fontSize: 13, color: "rgba(255,255,255,0.48)", lineHeight: 1.6 }}>{pt}</li>)}</ul>
-                  </div>
-                )}, { title: "Education", items: CONTENT.education, render: (ed) => (
-                  <div key={ed.school}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                      <div><div style={{ fontWeight: 900, fontSize: 14 }}>{ed.school}</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.40)", marginTop: 2 }}>{ed.program}</div></div>
-                      <span style={{ padding: "4px 10px", borderRadius: 99, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", alignSelf: "flex-start" }}>{ed.timeframe}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>{ed.notes.map((n) => <span key={n} style={{ padding: "4px 10px", borderRadius: 99, background: "rgba(59,130,246,0.09)", border: "1px solid rgba(59,130,246,0.18)", fontSize: 11, fontWeight: 700, color: "rgba(140,175,255,0.65)" }}>{n}</span>)}</div>
-                  </div>
-                )}].map(({ title, items, render }) => (
-                  <div key={title} style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-                    <div style={{ fontWeight: 1000, fontSize: 15, marginBottom: 16 }}>{title}</div>
-                    <div style={{ display: "grid", gap: 16 }}>{items.map(render)}</div>
+          <div style={{ display: "grid", gap: 44 }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>resume</h2>
+
+            <div>
+              <Lbl>skills</Lbl>
+              <div style={{ display: "grid", gap: 10 }}>
+                {Object.entries(CONTENT.skills).map(([cat, items]) => (
+                  <div key={cat} style={{ display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 64, flexShrink: 0 }}>{cat}</span>
+                    <span style={{ fontSize: 13, color: T.dim }}>{items.join(" · ")}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-                <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-                  <div style={{ fontWeight: 1000, fontSize: 15, marginBottom: 14 }}>Certifications</div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {CONTENT.certifications.map((c) => (
-                      <div key={c.name} style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</span>
-                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>{c.year}</span>
+            </div>
+
+            <div>
+              <Lbl>experience</Lbl>
+              <div style={{ display: "grid", gap: 24 }}>
+                {CONTENT.experience.map((e) => (
+                  <div key={e.role}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{e.role}</span>
+                        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {e.org}</span>
                       </div>
-                    ))}
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{e.timeframe}</span>
+                    </div>
+                    {e.points.map((pt) => <div key={pt} style={{ fontSize: 13, color: T.dim, paddingLeft: 12, borderLeft: `2px solid ${T.faint}`, marginBottom: 5, lineHeight: 1.65 }}>{pt}</div>)}
                   </div>
-                </div>
-                <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-                  <div style={{ fontWeight: 1000, fontSize: 15, marginBottom: 10 }}>What I'm Looking For</div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.48)", lineHeight: 1.65 }}>Entry-level roles or internships in security, SOC, AppSec, or secure full-stack development.</div>
-                </div>
-                <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
-                  <div style={{ fontWeight: 1000, fontSize: 15, marginBottom: 12 }}>Links</div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {[{ label: "GitHub", href: CONTENT.contact.github }, { label: "LinkedIn", href: CONTENT.contact.linkedin }, { label: "Portfolio", href: CONTENT.contact.website }].map((l) => (
-                      <a key={l.label} href={l.href} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.70)", textDecoration: "none", fontWeight: 700, fontSize: 13 }}>
-                        <Icon name="link" size={14} /> {l.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
+            </div>
+
+            <div>
+              <Lbl>education</Lbl>
+              {CONTENT.education.map((ed) => (
+                <div key={ed.school} style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{ed.school}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {ed.program}</span>
+                  </div>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{ed.timeframe}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ═══════ CONTACT ════════════════════════════════════════════════ */}
+        {/* ═══ CONTACT ═════════════════════════════════════════════════════ */}
         {page === "contact" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ marginBottom: 4 }}>
-              <h2 style={{ margin: "0 0 4px", fontSize: isMobile ? 26 : 36, fontWeight: 1000, letterSpacing: -0.9 }}>Contact</h2>
-              <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 14 }}>Let's talk</div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
-              <div style={{ padding: 24, borderRadius: 22, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", display: "grid", gap: 14, alignContent: "start" }}>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.52)", lineHeight: 1.72 }}>Want to connect about internships, projects, or security work? The fastest way to reach me is email.</div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {[{ label: CONTENT.contact.email, icon: "mail", href: `mailto:${CONTENT.contact.email}` }, { label: "LinkedIn", icon: "link", href: CONTENT.contact.linkedin }, { label: "GitHub", icon: "link", href: CONTENT.contact.github }].map((l) => (
-                    <a key={l.label} href={l.href} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 13, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.70)", textDecoration: "none", fontWeight: 700, fontSize: 13 }}>
-                      <Icon name={l.icon} size={15} /> {l.label}
-                    </a>
-                  ))}
+          <div>
+            <h2 style={{ margin: "0 0 32px", fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>contact</h2>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[
+                { lbl: "email",    href: `mailto:${CONTENT.contact.email}`,       val: CONTENT.contact.email },
+                { lbl: "github",   href: CONTENT.contact.github,                   val: "github.com/kyle-suda" },
+                { lbl: "linkedin", href: CONTENT.contact.linkedin,                 val: "linkedin.com/in/kylesuda" },
+              ].map((l) => (
+                <div key={l.lbl} style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 60 }}>{l.lbl}</span>
+                  <a href={l.href} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: T.text, textDecoration: "none", borderBottom: `1px solid ${T.dim}` }}>{l.val}</a>
                 </div>
-              </div>
-              <ContactForm />
+              ))}
             </div>
+            <ContactForm />
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.22)", paddingBottom: 36, position: "relative", zIndex: 2 }}>
-        © {new Date().getFullYear()} Kyle Suda · Built with React · UFC Predictor powered by XGBoost + LightGBM
+      <footer style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "20px 20px 44px" : "20px 0 44px", borderTop: `1px solid ${T.bd}` }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>© {new Date().getFullYear()} Kyle Suda</div>
       </footer>
     </div>
   );
