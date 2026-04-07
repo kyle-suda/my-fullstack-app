@@ -58,7 +58,7 @@
     "wc_Women's Flyweight",
     "wc_Women's Strawweight"
   ],
-  "best_winner_model": "winner_ensemble_model.pkl",
+  "best_winner_model": "winner_xgb_model.pkl",
   "results": {
     "winner_lgbm": {
       "mean_accuracy": 0.6367585630743526,
@@ -69,11 +69,6 @@
       "mean_accuracy": 0.6487886382623225,
       "std_accuracy": 0.010719475309838227,
       "mean_log_loss": 0.6504844710919162
-    },
-    "winner_ensemble": {
-      "mean_accuracy": 0.6558061821219716,
-      "std_accuracy": 0.011648070214157648,
-      "mean_log_loss": 0.6126175744514464
     },
     "method": {
       "mean_accuracy": 0.43558897243107764,

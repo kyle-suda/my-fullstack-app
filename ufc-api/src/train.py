@@ -397,7 +397,7 @@ def train_all_models(
         y_method = df["target_method"].astype(int)
         valid = y_method >= 0
         X_m, y_m = X[valid], y_method[valid]
-        X_m_aug, y_m_aug = mirror_feature_matrix(X_m, y_m)
+        X_m_aug, y_m_aug = mirror_feature_matrix(X_m, y_m, flip_target=False)
 
         method_model = build_method_model()
         method_metrics = evaluate_model(method_model, X_m, y_m, "Method of Victory")
@@ -416,7 +416,7 @@ def train_all_models(
         y_round = df["target_round"].astype(int)
         valid = y_round.between(1, 5)
         X_r, y_r = X[valid], y_round[valid]
-        X_r_aug, y_r_aug = mirror_feature_matrix(X_r, y_r)
+        X_r_aug, y_r_aug = mirror_feature_matrix(X_r, y_r, flip_target=False)
 
         round_model = build_round_model()
         round_metrics = evaluate_model(round_model, X_r, y_r, "Round Prediction")

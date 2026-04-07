@@ -696,6 +696,7 @@ def build_recent_form(df: pd.DataFrame) -> pd.DataFrame:
 def mirror_feature_matrix(
     X: pd.DataFrame,
     y: pd.Series,
+    flip_target: bool = True,
 ) -> tuple:
     """
     Double the training set by adding a mirrored copy of every fight.
@@ -743,7 +744,16 @@ def mirror_feature_matrix(
     if "r_is_southpaw" in X_mirror.columns:
         X_mirror["r_is_southpaw"] = 0
 
-    y_mirror = 1 - y  # flip winner: Red=1 → Blue=0 and vice-versa
+    # Only flip the target for the BINARY winner model (Red=1 ↔ Blue=0).
+    # For multiclass targets (method=0/1/2/3, round=1-5) swapping corners
+    # does NOT change the fight outcome method or round — those are properties
+    # of the matchup itself, not which corner each fighter occupies.
+    # Using 1-y on a multiclass target creates invalid negative class labels
+    # (e.g. Submission(2) → -1, Round 3 → -2) which corrupts the model.
+    if flip_target:
+        y_mirror = 1 - y
+    else:
+        y_mirror = y.copy()
 
     X_aug = pd.concat([X, X_mirror], ignore_index=True)
     y_aug = pd.concat([y, y_mirror], ignore_index=True)
