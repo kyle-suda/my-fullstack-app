@@ -684,6 +684,67 @@ def build_recent_form(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def mirror_feature_matrix(
+    X: pd.DataFrame,
+    y: pd.Series,
+) -> tuple:
+    """
+    Double the training set by adding a mirrored copy of every fight.
+
+    Why this is necessary
+    ---------------------
+    The UFC always assigns the red corner to the higher-ranked / more
+    experienced fighter. Because of this seeding, red wins ~60 % of
+    historical fights — even when the raw stat differentials are near zero.
+    A model trained on unmirrored data learns this positional bias as a
+    strong signal, causing it to consistently favour red when the two
+    fighters are evenly matched (or unknown).
+
+    How it works
+    ------------
+    All features in X are already Red-minus-Blue differentials, so
+    "mirroring" a fight is simply negating every differential column.
+    Non-differential context columns (title fight, rounds, weight class,
+    cross-stance flag) are left unchanged because they describe the
+    matchup itself, not which corner each fighter occupies.
+
+    Result: a perfectly 50/50-balanced dataset where the model must rely
+    entirely on *who* has better stats — not *which corner* they're in.
+    """
+    # Columns that represent the matchup context (not R-B diffs)
+    CONTEXT_COLS = {
+        "is_title_fight",
+        "scheduled_rounds",
+        "empty_arena",
+        "is_cross_stance",
+        "r_is_southpaw",   # stance of the red-corner fighter — set to 0
+    }
+    # Weight-class dummies also describe the bout, not the corner assignment
+    wc_cols = {c for c in X.columns if c.startswith("wc_")}
+    non_diff = CONTEXT_COLS | wc_cols
+
+    # Negate all differential features; preserve context features
+    X_mirror = X.copy()
+    for col in X.columns:
+        if col not in non_diff:
+            X_mirror[col] = -X[col]
+    # r_is_southpaw in the mirrored row should reflect the new red-corner
+    # fighter (original blue). We don't store b_is_southpaw separately,
+    # so use 0 as a neutral prior — a minor approximation.
+    if "r_is_southpaw" in X_mirror.columns:
+        X_mirror["r_is_southpaw"] = 0
+
+    y_mirror = 1 - y  # flip winner: Red=1 → Blue=0 and vice-versa
+
+    X_aug = pd.concat([X, X_mirror], ignore_index=True)
+    y_aug = pd.concat([y, y_mirror], ignore_index=True)
+
+    # Shuffle so the model doesn't see paired rows side-by-side
+    rng = np.random.RandomState(42)
+    idx = rng.permutation(len(X_aug))
+    return X_aug.iloc[idx].reset_index(drop=True), y_aug.iloc[idx].reset_index(drop=True)
+
+
 def build_all_features(df: pd.DataFrame, final_elo: Optional[dict] = None) -> pd.DataFrame:
     """
     Run the full feature engineering pipeline.

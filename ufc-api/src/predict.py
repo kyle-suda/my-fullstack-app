@@ -268,14 +268,32 @@ class UFCPredictor:
             "b_elo": round(b_elo, 1),
         }
 
-        # Winner
-        winner_proba = self.winner_model.predict_proba(X)[0]
-        winner_pred = int(self.winner_model.predict(X)[0])
+        # ---------------------------------------------------------------
+        # SYMMETRIZED WINNER PREDICTION
+        # The UFC always puts the better fighter in the red corner, so the
+        # model's training data has red winning ~60% of fights even at equal
+        # stats. To remove this positional bias, we run two predictions:
+        #   Forward:  red vs blue  → P(red wins)
+        #   Reversed: blue vs red  → P(original red wins when they're blue)
+        # Averaging these gives a corner-agnostic win probability.
+        # ---------------------------------------------------------------
+        context_rev = _reverse_context(context)
+        X_rev = self._build_feature_row(blue, red, context_rev)
+
+        proba_fwd = self.winner_model.predict_proba(X)[0]
+        proba_rev = self.winner_model.predict_proba(X_rev)[0]
+
+        # proba_fwd[1] = P(red wins in forward pass)
+        # proba_rev[0] = P(original red wins when they're in the blue slot)
+        red_win_prob  = (float(proba_fwd[1]) + float(proba_rev[0])) / 2.0
+        blue_win_prob = 1.0 - red_win_prob
+
+        winner_pred = 1 if red_win_prob > 0.5 else 0
         result["winner"] = red_name if winner_pred == 1 else blue_name
         result["winner_is_red"] = bool(winner_pred == 1)
-        result["red_win_probability"] = round(float(winner_proba[1]), 4)
-        result["blue_win_probability"] = round(float(winner_proba[0]), 4)
-        result["winner_confidence"] = round(max(winner_proba), 4)
+        result["red_win_probability"]  = round(red_win_prob,  4)
+        result["blue_win_probability"] = round(blue_win_prob, 4)
+        result["winner_confidence"]    = round(max(red_win_prob, blue_win_prob), 4)
 
         # Method of victory
         if self.method_model is not None:
@@ -375,6 +393,32 @@ class UFCPredictor:
             result["predicted_round"] = int(self.round_model.predict(X)[0])
 
         return result
+
+
+def _reverse_context(context: dict) -> dict:
+    """
+    Return a copy of context with red/blue roles swapped.
+
+    Used by the symmetrized prediction in predict_fight() to eliminate the
+    red-corner positional bias embedded in UFC training data.
+    """
+    rev = dict(context)
+    # Flip Elo differential (r_elo - b_elo  →  b_elo - r_elo)
+    if "elo_diff" in rev:
+        rev["elo_diff"] = -rev["elo_diff"]
+    if "elo_win_prob" in rev:
+        rev["elo_win_prob"] = 1.0 - rev["elo_win_prob"]
+    if "r_elo" in rev and "b_elo" in rev:
+        rev["r_elo"], rev["b_elo"] = rev["b_elo"], rev["r_elo"]
+    # Swap moneyline odds
+    for r_key, b_key in [("red_odds", "blue_odds"), ("r_odds", "b_odds")]:
+        if r_key in rev and b_key in rev:
+            rev[r_key], rev[b_key] = rev[b_key], rev[r_key]
+    # Negate method-odds differentials (they're already R-B diffs)
+    for key in ("ko_odds_diff", "sub_odds_diff", "dec_odds_diff"):
+        if key in rev:
+            rev[key] = -rev[key]
+    return rev
 
 
 def _implied_prob(american_odds: float) -> float:
