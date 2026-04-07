@@ -82,8 +82,9 @@ app.post("/users", async (req, res) => {
 if (IS_PROD) {
   const clientDist = path.join(__dirname, "..", "client", "dist");
   app.use(express.static(clientDist));
-  // For any route not caught by the API, return the React app
-  app.get("*", (_req, res) => {
+  // Catch-all: return the React app for any non-API route
+  // Express 5 requires a regex or named param — bare "*" throws on startup
+  app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
