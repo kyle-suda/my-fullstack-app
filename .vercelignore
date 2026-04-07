@@ -1,6 +1,0 @@
-# Exclude everything except the client directory
-ufc-api/
-server/
-railway.json
-start.js
-*.md
