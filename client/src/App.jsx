@@ -178,230 +178,185 @@ function Icon({ name, size = 18, color = "currentColor" }) {
   return M[name] || null;
 }
 
-/* ─── Octagon Fighter Avatar ─────────────────────────────────────────────── */
-function OctagonAvatar({ name, color, size = 88 }) {
-  const initials = name.split(" ").filter(Boolean).map((w) => w[0].toUpperCase()).slice(0, 2).join("");
-  const clip = "polygon(29% 0%,71% 0%,100% 29%,100% 71%,71% 100%,29% 100%,0% 71%,0% 29%)";
-  return (
-    <div style={{ width: size, height: size, flexShrink: 0, filter: `drop-shadow(0 0 ${size * 0.14}px ${color}55)` }}>
-      <div style={{
-        width: "100%", height: "100%",
-        background: `linear-gradient(135deg, ${color}44, ${color}18)`,
-        clipPath: clip,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: size * 0.27, fontWeight: 1000, color, letterSpacing: -1,
-      }}>{initials}</div>
-    </div>
-  );
-}
-
-/* ─── SVG Probability Ring ───────────────────────────────────────────────── */
-function ProbRing({ pct, color, size = 104 }) {
-  const r = size * 0.38;
-  const sw = size * 0.085;
-  const circ = 2 * Math.PI * r;
-  const [dash, setDash] = useState(0);
-  useEffect(() => {
-    const target = (pct / 100) * circ;
-    let frame = 0;
-    const steps = 45;
-    const tid = setInterval(() => {
-      frame++;
-      setDash(target * Math.min(frame / steps, 1));
-      if (frame >= steps) clearInterval(tid);
-    }, 14);
-    return () => clearInterval(tid);
-  }, [pct, circ]);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: "visible" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgba(255,255,255,0.07)" strokeWidth={sw} />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth={sw}
-        strokeDasharray={`${dash} ${Math.max(circ - dash, 0.01)}`}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ filter: `drop-shadow(0 0 ${size * 0.055}px ${color}99)`, transition: "none" }}
-      />
-      <text x={size / 2} y={size / 2 - size * 0.03} textAnchor="middle"
-        fill={color} fontSize={size * 0.21} fontWeight="bold" fontFamily="inherit">
-        {pct.toFixed(0)}%
-      </text>
-      <text x={size / 2} y={size / 2 + size * 0.155} textAnchor="middle"
-        fill="rgba(255,255,255,0.35)" fontSize={size * 0.095} fontWeight="700"
-        fontFamily="inherit" letterSpacing="1">WIN</text>
-    </svg>
-  );
-}
-
-/* ─── Method breakdown pills ─────────────────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
 const MC = { "KO/TKO": "#ef4444", "Submission": "#8b5cf6", "Decision": "#3b82f6", "Other/No Contest": "#6b7280" };
 
-function MethodBar({ probs }) {
-  const order = ["KO/TKO", "Submission", "Decision", "Other/No Contest"];
-  const shown = order.filter((m) => (probs[m] ?? 0) > 0);
-  return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {shown.map((m) => (
-        <div key={m} style={{
-          padding: "7px 12px", borderRadius: 12, display: "flex", flexDirection: "column",
-          alignItems: "center", gap: 2, minWidth: 68,
-          background: `${MC[m]}18`, border: `1px solid ${MC[m]}40`,
-        }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: MC[m] }}>{(probs[m] ?? 0).toFixed(0)}%</span>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textAlign: "center", lineHeight: 1.2 }}>{m}</span>
-        </div>
-      ))}
-    </div>
-  );
+function toAmericanOdds(prob) {
+  const p = Math.max(0.01, Math.min(0.99, prob));
+  if (p >= 0.5) return Math.round(-(p / (1 - p)) * 100);
+  return Math.round(((1 - p) / p) * 100);
+}
+function fmtOdds(prob) {
+  const o = toAmericanOdds(prob);
+  return o > 0 ? `+${o}` : `${o}`;
 }
 
-/* ─── Fight Matchup Card ─────────────────────────────────────────────────── */
+/* ─── Compact Sportsbook-Style Fight Card ────────────────────────────────── */
 function FightCard({ fight, idx, isMobile }) {
   const R = "#ef4444", B = "#3b82f6";
+
   if (fight.error) {
     return (
-      <div style={{ padding: "14px 18px", borderRadius: 18, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)", color: "rgba(255,255,255,0.45)", fontSize: 13 }}>
+      <div style={{ padding: "12px 16px", borderRadius: 14, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)", color: "rgba(255,255,255,0.42)", fontSize: 13 }}>
         {fight.red_fighter} vs {fight.blue_fighter} — {fight.error}
       </div>
     );
   }
+
   const winRed = fight.winner === fight.red_fighter;
-  const wc = winRed ? R : B;
+  const rPct = fight.red_win_probability ?? 50;
+  const bPct = fight.blue_win_probability ?? 50;
   const v = fight.value;
   const rEdge = v?.r_edge ?? 0, bEdge = v?.b_edge ?? 0;
   const hasVal = rEdge >= 8 || bEdge >= 8;
-  const valFighter = rEdge >= 8 ? fight.red_fighter : bEdge >= 8 ? fight.blue_fighter : null;
   const valColor = rEdge >= 8 ? R : B;
-  const rs = isMobile ? 76 : 96;
+  const valFighter = rEdge >= 8 ? fight.red_fighter : fight.blue_fighter;
+  const hasVegas = v && (v.r_vegas_pct > 0 || v.b_vegas_pct > 0);
+
+  const methodOrder = ["KO/TKO", "Submission", "Decision", "Other/No Contest"];
+  const methodProbs = fight.method_probs || {};
+  const shownMethods = methodOrder.filter((m) => (methodProbs[m] ?? 0) > 1);
 
   return (
     <div style={{
-      borderRadius: 24, overflow: "hidden",
+      borderRadius: 16, overflow: "hidden",
       background: fight.is_main_event
-        ? "linear-gradient(160deg, rgba(239,68,68,0.09), rgba(6,8,16,0) 60%, rgba(59,130,246,0.07))"
-        : "rgba(255,255,255,0.035)",
-      border: fight.is_main_event ? "1px solid rgba(239,68,68,0.28)" : "1px solid rgba(255,255,255,0.09)",
-      boxShadow: fight.is_main_event ? "0 2px 60px rgba(239,68,68,0.07)" : "0 2px 30px rgba(0,0,0,0.25)",
-      animation: `fiup 420ms ease ${idx * 75}ms both`,
+        ? "linear-gradient(135deg, rgba(239,68,68,0.08), rgba(6,8,16,0.0) 55%, rgba(59,130,246,0.06))"
+        : "rgba(255,255,255,0.033)",
+      border: fight.is_main_event ? "1px solid rgba(239,68,68,0.26)" : "1px solid rgba(255,255,255,0.08)",
+      animation: `fiup 360ms ease ${idx * 55}ms both`,
     }}>
-      {/* Header strip */}
+
+      {/* ── Top bar: badges + value ── */}
       <div style={{
-        padding: "11px 18px",
-        background: "rgba(0,0,0,0.25)",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+        padding: "8px 14px",
+        background: "rgba(0,0,0,0.22)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
       }}>
-        <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
-          {fight.is_main_event && (
-            <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 900, letterSpacing: 0.8, background: "linear-gradient(90deg,#ef4444,#f97316)", color: "#fff" }}>★ MAIN EVENT</span>
-          )}
-          {fight.is_title_fight && (
-            <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 900, background: "linear-gradient(90deg,#f59e0b,#d97706)", color: "#fff" }}>🏆 TITLE</span>
-          )}
-          <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
-            {fight.weight_class}
-          </span>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {fight.is_main_event && <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 900, letterSpacing: 0.6, background: "linear-gradient(90deg,#ef4444,#f97316)", color: "#fff" }}>★ MAIN EVENT</span>}
+          {fight.is_title_fight && <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 900, background: "linear-gradient(90deg,#f59e0b,#d97706)", color: "#fff" }}>🏆 TITLE</span>}
+          <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.50)" }}>{fight.weight_class}</span>
         </div>
         {hasVal && (
-          <span style={{
-            padding: "3px 12px", borderRadius: 99, fontSize: 11, fontWeight: 900,
-            background: `${valColor}20`, border: `1px solid ${valColor}50`, color: valColor,
-            animation: "pulse 2s ease infinite",
-          }}>⚡ VALUE BET</span>
+          <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 11, fontWeight: 900, background: `${valColor}1e`, border: `1px solid ${valColor}48`, color: valColor, animation: "pulse 2s ease infinite" }}>
+            ⚡ VALUE BET
+          </span>
         )}
       </div>
 
-      {/* Fighters */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "1fr 44px 1fr",
-        gap: 0,
-      }}>
-        {/* Red */}
-        <div style={{
-          padding: isMobile ? "22px 20px 14px" : "26px 22px",
-          background: "linear-gradient(135deg, rgba(239,68,68,0.07), transparent 70%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
-          borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)",
-          borderBottom: isMobile ? "1px solid rgba(255,255,255,0.05)" : "none",
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: R, letterSpacing: 1.2, opacity: 0.75 }}>🔴 RED CORNER</div>
-          <OctagonAvatar name={fight.red_fighter} color={R} size={isMobile ? 68 : 84} />
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 1000, fontSize: isMobile ? 15 : 17, letterSpacing: -0.4 }}>{fight.red_fighter}</div>
-            {fight.r_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 3 }}>Elo {fight.r_elo}</div>}
-          </div>
-          <ProbRing pct={fight.red_win_probability ?? 50} color={R} size={rs} />
-          {winRed && (
-            <div style={{ padding: "4px 14px", borderRadius: 99, background: `${R}20`, border: `1px solid ${R}40`, color: R, fontSize: 11, fontWeight: 900 }}>
-              PREDICTED WINNER
+      {/* ── Main betting layout ── */}
+      <div style={{ padding: isMobile ? "12px 14px" : "14px 18px", display: "grid", gap: 10 }}>
+
+        {/* Fighter names row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{
+                fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3,
+                color: winRed ? R : "#e8eef6",
+              }}>{fight.red_fighter}</span>
+              {winRed && <span style={{ fontSize: 10, fontWeight: 900, color: R, background: `${R}1a`, border: `1px solid ${R}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
             </div>
-          )}
+            {fight.r_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2 }}>Elo {fight.r_elo}</div>}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,0.25)", letterSpacing: 1 }}>VS</div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 7 }}>
+              {!winRed && <span style={{ fontSize: 10, fontWeight: 900, color: B, background: `${B}1a`, border: `1px solid ${B}33`, padding: "1px 7px", borderRadius: 99 }}>PICK</span>}
+              <span style={{
+                fontWeight: 1000, fontSize: isMobile ? 14 : 16, letterSpacing: -0.3,
+                color: !winRed ? B : "#e8eef6",
+              }}>{fight.blue_fighter}</span>
+            </div>
+            {fight.b_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.32)", marginTop: 2, textAlign: "right" }}>Elo {fight.b_elo}</div>}
+          </div>
         </div>
 
-        {/* VS */}
-        <div style={{
-          display: "flex", flexDirection: isMobile ? "row" : "column",
-          alignItems: "center", justifyContent: "center",
-          padding: isMobile ? "10px 20px" : "0 4px", gap: 6,
-        }}>
+        {/* Odds + probability row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "center", gap: 6 }}>
+          {/* Red odds block */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: R, letterSpacing: -1, lineHeight: 1 }}>
+              {fmtOdds(rPct / 100)}
+            </div>
+            <div style={{ fontSize: 11, color: R, fontWeight: 700, opacity: 0.7 }}>{rPct.toFixed(1)}% win</div>
+            {hasVegas && v.r_vegas_pct > 0 && (
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>
+                Vegas: {fmtOdds(v.r_vegas_pct / 100)}
+              </div>
+            )}
+            {rEdge >= 8 && (
+              <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 800 }}>+{rEdge.toFixed(1)}% edge</div>
+            )}
+          </div>
+
+          {/* Center probability bar */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{ width: "100%", height: 10, borderRadius: 99, background: "rgba(255,255,255,0.07)", overflow: "hidden", position: "relative" }}>
+              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${rPct}%`, background: `linear-gradient(90deg, ${R}cc, ${R}88)`, borderRadius: "99px 0 0 99px" }} />
+              <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: `${bPct}%`, background: `linear-gradient(270deg, ${B}cc, ${B}88)`, borderRadius: "0 99px 99px 0" }} />
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", fontWeight: 700 }}>MODEL PROBABILITY</div>
+          </div>
+
+          {/* Blue odds block */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 1000, color: B, letterSpacing: -1, lineHeight: 1 }}>
+              {fmtOdds(bPct / 100)}
+            </div>
+            <div style={{ fontSize: 11, color: B, fontWeight: 700, opacity: 0.7 }}>{bPct.toFixed(1)}% win</div>
+            {hasVegas && v.b_vegas_pct > 0 && (
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, textAlign: "right" }}>
+                Vegas: {fmtOdds(v.b_vegas_pct / 100)}
+              </div>
+            )}
+            {bEdge >= 8 && (
+              <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 800, textAlign: "right" }}>+{bEdge.toFixed(1)}% edge</div>
+            )}
+          </div>
+        </div>
+
+        {/* Method + finish line */}
+        {(shownMethods.length > 0 || fight.predicted_method) && (
           <div style={{
-            width: isMobile ? 34 : 38, height: isMobile ? 34 : 38, borderRadius: "50%",
-            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 10, fontWeight: 900, color: "rgba(255,255,255,0.35)", letterSpacing: 0.5,
-          }}>VS</div>
-        </div>
-
-        {/* Blue */}
-        <div style={{
-          padding: isMobile ? "14px 20px 22px" : "26px 22px",
-          background: "linear-gradient(225deg, rgba(59,130,246,0.07), transparent 70%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: B, letterSpacing: 1.2, opacity: 0.75 }}>BLUE CORNER 🔵</div>
-          <OctagonAvatar name={fight.blue_fighter} color={B} size={isMobile ? 68 : 84} />
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 1000, fontSize: isMobile ? 15 : 17, letterSpacing: -0.4 }}>{fight.blue_fighter}</div>
-            {fight.b_elo && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 3 }}>Elo {fight.b_elo}</div>}
+            paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            flexWrap: "wrap", gap: 8,
+          }}>
+            {/* Method chips */}
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {shownMethods.map((m) => (
+                <span key={m} style={{
+                  padding: "3px 9px", borderRadius: 99, fontSize: 11, fontWeight: 800,
+                  background: `${MC[m]}18`, border: `1px solid ${MC[m]}35`, color: MC[m],
+                }}>
+                  {m} {(methodProbs[m] ?? 0).toFixed(0)}%
+                </span>
+              ))}
+            </div>
+            {/* Predicted finish */}
+            {fight.predicted_method && (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.30)", fontWeight: 800 }}>PREDICTED FINISH</span>
+                <span style={{ fontSize: 12, fontWeight: 900, color: MC[fight.predicted_method] || "#e8eef6" }}>
+                  {fight.predicted_method}
+                  {fight.predicted_round ? ` · Rd ${fight.predicted_round}` : ""}
+                </span>
+              </div>
+            )}
           </div>
-          <ProbRing pct={fight.blue_win_probability ?? 50} color={B} size={rs} />
-          {!winRed && (
-            <div style={{ padding: "4px 14px", borderRadius: 99, background: `${B}20`, border: `1px solid ${B}40`, color: B, fontSize: 11, fontWeight: 900 }}>
-              PREDICTED WINNER
-            </div>
-          )}
-        </div>
-      </div>
+        )}
 
-      {/* Footer: method + round */}
-      {(fight.predicted_method || (fight.method_probs && Object.keys(fight.method_probs).length > 0)) && (
-        <div style={{ padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.22)", display: "grid", gap: 10 }}>
-          {fight.predicted_method && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", fontWeight: 800 }}>PREDICTED</span>
-              <span style={{ fontWeight: 900, fontSize: 14, color: MC[fight.predicted_method] || wc }}>{fight.predicted_method}</span>
-              {fight.predicted_round && (
-                <><span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.55)" }}>Round {fight.predicted_round}</span></>
-              )}
-            </div>
-          )}
-          {fight.method_probs && Object.keys(fight.method_probs).length > 0 && (
-            <MethodBar probs={fight.method_probs} />
-          )}
-          {hasVal && (
-            <div style={{
-              padding: "8px 14px", borderRadius: 12, textAlign: "center",
-              background: `${valColor}12`, border: `1px solid ${valColor}28`,
-              fontSize: 12, color: valColor, fontWeight: 700,
-            }}>
-              ⚡ Value on {valFighter}: +{(rEdge >= 8 ? rEdge : bEdge).toFixed(1)}% edge vs Vegas
-            </div>
-          )}
-        </div>
-      )}
+        {/* Value bet detail */}
+        {hasVal && (
+          <div style={{ padding: "7px 12px", borderRadius: 10, background: `${valColor}0e`, border: `1px solid ${valColor}25`, fontSize: 12, color: valColor, fontWeight: 700, display: "flex", gap: 6, alignItems: "center" }}>
+            <span>⚡</span>
+            <span>Value on <strong>{valFighter}</strong>: +{(rEdge >= 8 ? rEdge : bEdge).toFixed(1)}% edge vs Vegas vig-adjusted line</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -706,30 +661,42 @@ function CustomMatchup({ isMobile }) {
       {err && <div style={{ padding: "11px 16px", borderRadius: 13, background: "rgba(239,68,68,0.09)", border: "1px solid rgba(239,68,68,0.28)", fontSize: 13, color: "#ef4444" }}>{err}</div>}
 
       {fightCard && (
-        <div style={{ animation: "fiup 380ms ease both" }}>
+        <div style={{ animation: "fiup 380ms ease both", display: "grid", gap: 12 }}>
           <FightCard fight={fightCard} idx={0} isMobile={isMobile} />
-          {res.value && (
-            <div style={{ marginTop: 14, padding: "18px 20px", borderRadius: 18, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)" }}>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.35)", marginBottom: 14 }}>VALUE ANALYSIS</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+          {res.value && res.value.r_vegas_pct > 0 && (
+            <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ padding: "8px 14px", background: "rgba(0,0,0,0.25)", fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "rgba(255,255,255,0.35)" }}>
+                BETTING EDGE ANALYSIS
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
                 {[
                   { label: res.red_fighter, model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: R },
                   { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: B },
-                ].map((f) => (
-                  <div key={f.label} style={{ padding: 14, borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <div style={{ fontWeight: 900, fontSize: 13, color: f.color, marginBottom: 10 }}>{f.label}</div>
-                    <div style={{ display: "grid", gap: 6, fontSize: 12 }}>
-                      {[
-                        ["Model", `${f.model?.toFixed(1)}%`, null],
-                        ["Vegas (vig-adj)", `${f.vegas?.toFixed(1)}%`, null],
-                        ["Edge", `${f.edge >= 0 ? "+" : ""}${f.edge?.toFixed(1)}%`, f.edge >= 8 ? "#22c55e" : f.edge >= 0 ? "rgba(255,255,255,0.7)" : "#ef4444"],
-                        ...(f.kelly > 0 ? [["Kelly (¼)", `${(f.kelly * 0.25).toFixed(1)}% bankroll`, "#22c55e"]] : []),
-                      ].map(([lbl, val, col]) => (
-                        <div key={lbl} style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ color: "rgba(255,255,255,0.38)" }}>{lbl}</span>
-                          <span style={{ fontWeight: 900, color: col || "rgba(255,255,255,0.8)" }}>{val}</span>
+                ].map((f, fi) => (
+                  <div key={f.label} style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", borderRight: fi === 0 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                    <div style={{ fontWeight: 900, fontSize: 12, color: f.color, marginBottom: 8 }}>{f.label}</div>
+                    <div style={{ display: "grid", gap: 5, fontSize: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Model odds</span>
+                        <span style={{ fontWeight: 900, color: f.color }}>{fmtOdds(f.model / 100)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Vegas odds</span>
+                        <span style={{ fontWeight: 900 }}>{fmtOdds(f.vegas / 100)}</span>
+                      </div>
+                      <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: "rgba(255,255,255,0.38)" }}>Edge</span>
+                        <span style={{ fontWeight: 900, color: f.edge >= 8 ? "#22c55e" : f.edge >= 0 ? "rgba(255,255,255,0.7)" : "#ef4444" }}>
+                          {f.edge >= 0 ? "+" : ""}{f.edge?.toFixed(1)}%
+                        </span>
+                      </div>
+                      {f.kelly > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                          <span style={{ color: "rgba(255,255,255,0.38)" }}>Kelly (¼)</span>
+                          <span style={{ fontWeight: 900, color: "#22c55e" }}>{(f.kelly * 0.25).toFixed(1)}% bankroll</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 ))}
