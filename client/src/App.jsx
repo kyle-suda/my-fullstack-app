@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * Sections: Home, Projects, UFC Predictor, Resume, Contact
  */
 
-const UFC_API = "http://localhost:5001";
+const UFC_API = "https://vibrant-healing-ufc-api-production.up.railway.app";
 
 const CONTENT = {
   name: "Kyle Suda",
