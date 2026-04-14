@@ -59,6 +59,8 @@
     "wc_Women's Strawweight"
   ],
   "best_winner_model": "winner_xgb_model.pkl",
+  "win_prob_temperature": 0.66,
+  "win_prob_elo_blend_max": 0.24,
   "results": {
     "winner_lgbm": {
       "mean_accuracy": 0.6367585630743526,
