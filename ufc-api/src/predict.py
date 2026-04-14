@@ -38,6 +38,50 @@ WINNER_LABELS = {1: "Red Corner", 0: "Blue Corner"}
 
 ELO_DEFAULT = 1500.0
 
+# After symmetrization, raw win probs often sit near 50% because the forward /
+# reverse passes are averaged.  Sharpening (temperature < 1 in logit space)
+# spreads them toward clearer "confidence" while preserving ordering and
+# corner-symmetry: sharpen(1-p) == 1 - sharpen(p).
+# Optional Elo blend pulls the probability toward rating-implied odds when
+# there is a real Elo gap (both at 1500 → no blend).
+_DEFAULT_WIN_TEMP = 0.66
+_DEFAULT_ELO_BLEND_MAX = 0.24
+
+
+def _elo_implied_red_win_prob(r_elo: float, b_elo: float) -> float:
+    return 1.0 / (1.0 + 10.0 ** (-(float(r_elo) - float(b_elo)) / 400.0))
+
+
+def _blend_symmetrized_with_elo(
+    p_red: float,
+    r_elo: float,
+    b_elo: float,
+    elo_blend_max: float,
+) -> float:
+    """Mix symmetrized model prob with Elo-implied prob when ratings diverge."""
+    d = abs(float(r_elo) - float(b_elo))
+    if d < 1e-6 or elo_blend_max <= 0:
+        return p_red
+    # Up to elo_blend_max weight when |ΔElo| is large (~≥200)
+    alpha = min(float(elo_blend_max), d / 850.0)
+    p_elo = _elo_implied_red_win_prob(r_elo, b_elo)
+    return (1.0 - alpha) * p_red + alpha * p_elo
+
+
+def _sharpen_win_probability(p: float, temperature: float) -> float:
+    """
+    Map p ∈ (0,1) through a logit rescale.  temperature in (0, 1] sharpens
+    (pushes away from 0.5); temperature == 1.0 is identity.
+    """
+    t = float(temperature)
+    if t >= 0.999:
+        return float(p)
+    eps = 1e-7
+    p = float(np.clip(p, eps, 1.0 - eps))
+    logit = np.log(p / (1.0 - p))
+    p2 = 1.0 / (1.0 + np.exp(-logit / t))
+    return float(np.clip(p2, eps, 1.0 - eps))
+
 
 class UFCPredictor:
     """Load trained models and make predictions for new fights."""
@@ -51,6 +95,8 @@ class UFCPredictor:
         self.feature_columns = None
         self.elo_ratings: dict = {}
         self.fighter_stats: dict = {}   # name → most-recent stat dict
+        self.win_prob_temperature = _DEFAULT_WIN_TEMP
+        self.win_prob_elo_blend_max = _DEFAULT_ELO_BLEND_MAX
         self._load_models()
         self._load_fighter_stats()
 
@@ -117,6 +163,17 @@ class UFCPredictor:
         with open(meta_path) as f:
             meta = json.load(f)
         self.feature_columns = meta["feature_columns"]
+        self.win_prob_temperature = float(
+            meta.get("win_prob_temperature", _DEFAULT_WIN_TEMP)
+        )
+        self.win_prob_elo_blend_max = float(
+            meta.get("win_prob_elo_blend_max", _DEFAULT_ELO_BLEND_MAX)
+        )
+        # Env overrides (e.g. Railway) without editing JSON
+        if os.environ.get("UFC_WIN_PROB_TEMPERATURE"):
+            self.win_prob_temperature = float(os.environ["UFC_WIN_PROB_TEMPERATURE"])
+        if os.environ.get("UFC_WIN_PROB_ELO_BLEND_MAX"):
+            self.win_prob_elo_blend_max = float(os.environ["UFC_WIN_PROB_ELO_BLEND_MAX"])
 
         # Load Elo ratings for inference
         elo_path = os.path.join(self.models_dir, "elo_ratings.json")
@@ -368,7 +425,13 @@ class UFCPredictor:
 
         # proba_fwd[1] = P(red wins in forward pass)
         # proba_rev[0] = P(original red wins when they're in the blue slot)
-        red_win_prob  = (float(proba_fwd[1]) + float(proba_rev[0])) / 2.0
+        red_sym = (float(proba_fwd[1]) + float(proba_rev[0])) / 2.0
+        red_win_prob = _blend_symmetrized_with_elo(
+            red_sym, r_elo, b_elo, self.win_prob_elo_blend_max,
+        )
+        red_win_prob = _sharpen_win_probability(
+            red_win_prob, self.win_prob_temperature,
+        )
         blue_win_prob = 1.0 - red_win_prob
 
         winner_pred = 1 if red_win_prob > 0.5 else 0

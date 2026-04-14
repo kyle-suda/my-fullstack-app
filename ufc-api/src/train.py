@@ -434,6 +434,9 @@ def train_all_models(
         feature_meta = {
             "feature_columns": X.columns.tolist(),
             "best_winner_model": best_model_name,
+            # Inference: spread win % away from 50/50 after symmetrization (see predict.py)
+            "win_prob_temperature": 0.66,
+            "win_prob_elo_blend_max": 0.24,
             "results": {k: {kk: float(vv) if isinstance(vv, (np.floating, float)) else vv
                             for kk, vv in v.items() if not isinstance(vv, list)} for k, v in results.items()},
         }
