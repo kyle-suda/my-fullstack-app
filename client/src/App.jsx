@@ -1165,7 +1165,6 @@ function PortfolioHome({ isMobile, onOpenUfc }) {
         }
         .proj-card:hover .proj-title { color: ${T.gold} !important; }
         .nav-link:hover { color: ${T.fg} !important; }
-        a.foot-link:hover { color: ${T.fg} !important; }
         @keyframes fd { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
       `}</style>
 
@@ -1322,17 +1321,10 @@ function PortfolioHome({ isMobile, onOpenUfc }) {
           </section>
 
           <footer style={{
-            display: "flex", flexDirection: isMobile ? "column" : "row",
-            justifyContent: "space-between", gap: 16,
             paddingTop: 28, borderTop: `1px solid ${T.faint}`,
             fontFamily: MONO, fontSize: 11, color: T.dim,
           }}>
             <span>{CONTENT.name.toLowerCase()} © {new Date().getFullYear()}</span>
-            <div style={{ display: "flex", gap: 16 }}>
-              <a className="foot-link" href={`mailto:${CONTENT.contact.email}`} style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>email</a>
-              <a className="foot-link" href={CONTENT.contact.github} target="_blank" rel="noreferrer" style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>github</a>
-              <a className="foot-link" href={CONTENT.contact.linkedin} target="_blank" rel="noreferrer" style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>linkedin</a>
-            </div>
           </footer>
         </main>
       </div>
