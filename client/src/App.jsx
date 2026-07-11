@@ -338,7 +338,7 @@ function UpcomingCard({ isMobile }) {
   if (loading) {
     return (
       <div style={{ padding: "60px 0" }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>scraping ufcstats.com · running predictions...</div>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>loading upcoming card · running predictions...</div>
         <div style={{ fontFamily: MONO, fontSize: 11, marginTop: 6, color: "#252535" }}>~20–30 seconds</div>
       </div>
     );

@@ -6,7 +6,7 @@ Endpoints:
     GET  /fighters            — list of all known fighters (for autocomplete)
     POST /predict             — predict a single matchup
     POST /card                — predict an entire event
-    GET  /next-card           — scrape next UFCStats event + predict
+    GET  /next-card           — scrape next UFC.com event + predict
     GET  /weight_classes      — static weight class list
 
 Usage:
@@ -209,7 +209,7 @@ def _format_prediction(result, extra=None):
 
 
 def _map_weight_class(raw: str) -> str:
-    """Map UFCStats weight-class text to our canonical labels."""
+    """Map UFC.com / UFCStats weight-class text to our canonical labels."""
     text = (raw or "").lower().strip()
     mapping = {
         "women's strawweight": "Women's Strawweight",
@@ -226,6 +226,7 @@ def _map_weight_class(raw: str) -> str:
         "light heavyweight": "Light Heavyweight",
         "heavyweight": "Heavyweight",
         "catch weight": "Lightweight",
+        "catchweight": "Lightweight",
         "open weight": "Heavyweight",
     }
     # Prefer longer keys so "women's flyweight" wins over "flyweight"
@@ -233,6 +234,94 @@ def _map_weight_class(raw: str) -> str:
         if key in text:
             return val
     return "Lightweight"
+
+
+def _is_title_bout(raw: str) -> bool:
+    text = (raw or "").lower()
+    return any(tok in text for tok in ("title", "championship", "interim"))
+
+
+def _scrape_ufc_com_next_card():
+    """
+    Scrape the next upcoming event + fights from ufc.com.
+
+    UFCStats now serves a JS/bot challenge page, so the live site uses
+    the official UFC events listing instead.
+    """
+    import requests as req
+    from bs4 import BeautifulSoup
+
+    HDRS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    events_url = "https://www.ufc.com/events"
+    resp = req.get(events_url, headers=HDRS, timeout=20)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    cards = soup.select("#events-list-upcoming .c-card-event--result")
+    if not cards:
+        # Fallback if the upcoming section id changes
+        cards = soup.select(".view-events-upcoming-past .c-card-event--result")
+
+    events = []
+    for card in cards:
+        headline = card.select_one(".c-card-event--result__headline")
+        date_el = card.select_one(".c-card-event--result__date")
+        loc_el = card.select_one(".c-card-event--result__location")
+        link = card.select_one("a[href*='/event/']")
+        if not link:
+            continue
+        href = link.get("href", "")
+        if href.startswith("/"):
+            href = "https://www.ufc.com" + href
+        name = headline.get_text(" ", strip=True) if headline else link.get_text(" ", strip=True)
+        if not name or not href:
+            continue
+        events.append({
+            "name": name,
+            "url": href,
+            "date": date_el.get_text(" ", strip=True) if date_el else "",
+            "location": loc_el.get_text(" ", strip=True) if loc_el else "",
+        })
+
+    if not events:
+        raise LookupError("No upcoming events found on UFC.com")
+
+    event = events[0]
+    resp = req.get(event["url"], headers=HDRS, timeout=20)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    fights_raw = []
+    for row in soup.select(".c-listing-fight"):
+        names = [
+            n.get_text(" ", strip=True)
+            for n in row.select(".c-listing-fight__corner-name")
+            if n.get_text(" ", strip=True)
+        ]
+        if len(names) < 2:
+            continue
+        wc_el = row.select_one(".c-listing-fight__class-text")
+        wc_raw = wc_el.get_text(" ", strip=True) if wc_el else ""
+        fights_raw.append({
+            "red": names[0],
+            "blue": names[1],
+            "weight_class": _map_weight_class(wc_raw),
+            "is_title": _is_title_bout(wc_raw),
+        })
+
+    if not fights_raw:
+        raise LookupError("No fights found on the event page — fights may not be announced yet")
+
+    return event, fights_raw
 
 
 # ── routes ──────────────────────────────────────────────────────────────────
@@ -324,82 +413,17 @@ def predict_card():
 @app.get("/next-card")
 def next_card():
     """
-    Scrape the next upcoming UFC event from UFCStats and return predictions
+    Scrape the next upcoming UFC event from UFC.com and return predictions
     for every announced fight.
     """
     try:
-        import requests as req
-        from bs4 import BeautifulSoup
-    except ImportError as e:
-        return jsonify({"error": f"Missing dependency: {e}"}), 500
-
-    BASE = "http://www.ufcstats.com"
-    HDRS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-
-    # 1. Get list of upcoming events
-    try:
-        resp = req.get(f"{BASE}/statistics/events/upcoming", headers=HDRS, timeout=14)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
+        event, fights_raw = _scrape_ufc_com_next_card()
+    except LookupError as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
-        return jsonify({"error": f"Cannot fetch events list: {e}"}), 503
+        log.exception("Failed to scrape upcoming card")
+        return jsonify({"error": f"Cannot fetch upcoming card: {e}"}), 503
 
-    events = []
-    for row in soup.select("tr.b-statistics__table-row"):
-        a = row.find("a", class_="b-link")
-        if not a or "event-details" not in a.get("href", ""):
-            continue
-        date_span = row.find("span", class_="b-statistics__date")
-        tds = row.find_all("td")
-        location = tds[1].get_text(strip=True) if len(tds) > 1 else ""
-        events.append({
-            "name": a.text.strip(),
-            "url": a["href"],
-            "date": date_span.text.strip() if date_span else "",
-            "location": location,
-        })
-
-    if not events:
-        return jsonify({"error": "No upcoming events found on UFCStats"}), 404
-
-    event = events[0]
-
-    # 2. Scrape fights from the event page
-    try:
-        resp = req.get(event["url"], headers=HDRS, timeout=14)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-    except Exception as e:
-        return jsonify({"error": f"Cannot fetch event page: {e}"}), 503
-
-    fights_raw = []
-    for row in soup.select("tr.b-fight-details__table-row"):
-        if not row.get("data-link"):
-            continue
-        anchors = row.select("td p.b-fight-details__table-text a")
-        names = [a.text.strip() for a in anchors if a.text.strip()]
-        if len(names) < 2:
-            continue
-        cols = row.find_all("td")
-        wc_raw = cols[6].get_text(" ", strip=True) if len(cols) > 6 else ""
-        wc = _map_weight_class(wc_raw)
-        first_col_text = cols[0].get_text(" ").lower() if cols else ""
-        is_title = "title" in first_col_text or "championship" in first_col_text
-        fights_raw.append({
-            "red": names[0], "blue": names[1],
-            "weight_class": wc, "is_title": is_title,
-        })
-
-    if not fights_raw:
-        return jsonify({"error": "No fights found on the event page — fights may not be announced yet"}), 404
-
-    # 3. Run predictions for each fight
     predictions = []
     for i, f in enumerate(fights_raw):
         is_main = (i == 0)
