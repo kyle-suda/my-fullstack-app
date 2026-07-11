@@ -181,11 +181,11 @@ function Lbl({ children, color }) {
 }
 
 /* ── Fight row (octagon.sys layout) ──────────────────────────────────────── */
-function FightRow({ fight, theme, idx }) {
+function FightRow({ fight, theme, idx, isMobile }) {
   const C = theme;
   if (fight.error) {
     return (
-      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, color: C.muted, fontSize: 11, fontFamily: MONO }}>
+      <div style={{ padding: isMobile ? "12px 16px" : "14px 20px", borderBottom: `1px solid ${C.border}`, color: C.muted, fontSize: 12, fontFamily: MONO }}>
         {fight.red_fighter} vs {fight.blue_fighter} — {fight.error}
       </div>
     );
@@ -209,54 +209,64 @@ function FightRow({ fight, theme, idx }) {
       ? { background: "rgba(255,171,0,0.15)", color: C.amber }
       : { background: `${C.dim}33`, color: C.muted };
 
+  const nameSize = isMobile ? 13 : 15;
+  const oddsSize = isMobile ? 11 : 12;
+  const pad = isMobile ? "12px 16px" : "16px 20px";
+
   return (
     <div
       className="fight-row"
       style={{
         borderBottom: `1px solid ${C.border}`,
         animation: `fd 180ms ease ${idx * 28}ms both`,
+        height: "100%",
       }}
     >
-      <div style={{ padding: "8px 12px" }}>
-        <div style={{ display: "grid", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-              <div style={{ width: 6, height: 6, borderRadius: 99, background: C.muted, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: C.fg, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div style={{ padding: pad }}>
+        <div style={{ display: "grid", gap: isMobile ? 4 : 6 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+              <div style={{ width: 7, height: 7, borderRadius: 99, background: C.cyan, flexShrink: 0, opacity: 0.7 }} />
+              <span style={{ fontSize: nameSize, fontWeight: 600, color: C.fg, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {top.name}
               </span>
             </div>
-            <span style={{ fontSize: 10, color: C.dim, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(top.pct / 100)}</span>
+            <span style={{ fontSize: oddsSize, color: C.muted, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(top.pct / 100)}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-              <div style={{ width: 6, height: 6, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: C.fg, opacity: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+              <div style={{ width: 7, height: 7, flexShrink: 0 }} />
+              <span style={{ fontSize: nameSize, color: C.fg, opacity: 0.45, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {bot.name}
               </span>
             </div>
-            <span style={{ fontSize: 10, color: C.dim, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(bot.pct / 100)}</span>
+            <span style={{ fontSize: oddsSize, color: C.dim, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(bot.pct / 100)}</span>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+        {/* Probability bar */}
+        <div style={{ marginTop: isMobile ? 10 : 12, height: 3, background: C.elevated, borderRadius: 99, overflow: "hidden" }}>
+          <div style={{ width: `${top.pct}%`, height: "100%", background: C.cyan, borderRadius: 99, opacity: 0.85 }} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           <span style={{
-            fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+            fontSize: isMobile ? 9 : 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4,
             background: C.muted, color: "#fff", fontFamily: MONO,
           }}>
             {lastName(top.name)}
           </span>
-          <span style={{ fontSize: 10, color: C.cyan, fontFamily: MONO }}>{top.pct.toFixed(1)}%</span>
+          <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 600, color: C.cyan, fontFamily: MONO }}>{top.pct.toFixed(1)}%</span>
           {fight.predicted_method && (
-            <span style={{ fontSize: 8, fontWeight: 500, color: C.purple }}>
-              {fight.predicted_method}
+            <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 500, color: C.purple }}>
+              {fight.predicted_method}{fight.predicted_round ? ` R${fight.predicted_round}` : ""}
             </span>
           )}
-          <span style={{ fontSize: 7, fontWeight: 700, padding: "2px 4px", borderRadius: 4, ...confStyle }}>
+          <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 700, padding: "3px 6px", borderRadius: 4, textTransform: "uppercase", letterSpacing: 0.4, ...confStyle }}>
             {conf}
           </span>
           {fight.weight_class && (
-            <span style={{ fontSize: 8, color: C.dim, fontFamily: MONO, marginLeft: "auto" }}>
+            <span style={{ fontSize: isMobile ? 9 : 10, color: C.dim, fontFamily: MONO, marginLeft: "auto" }}>
               {fight.weight_class}
             </span>
           )}
@@ -347,18 +357,19 @@ function FighterSearch({ value, onChange, placeholder, accent, theme }) {
   );
 }
 
-function SectionLabel({ children, theme }) {
+function SectionLabel({ children, theme, isMobile }) {
   const C = theme;
   return (
     <div style={{
-      padding: "10px 12px 6px",
-      fontSize: 9,
+      padding: isMobile ? "14px 16px 8px" : "18px 20px 10px",
+      fontSize: isMobile ? 10 : 11,
       fontWeight: 700,
-      letterSpacing: 1.4,
+      letterSpacing: 1.6,
       textTransform: "uppercase",
       color: C.cyan,
       fontFamily: MONO,
       borderBottom: `1px solid ${C.border}`,
+      gridColumn: "1 / -1",
     }}>
       {children}
     </div>
@@ -366,7 +377,7 @@ function SectionLabel({ children, theme }) {
 }
 
 /* ── Upcoming card ───────────────────────────────────────────────────────── */
-function UpcomingCard({ theme }) {
+function UpcomingCard({ theme, isMobile }) {
   const C = theme;
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(false);
@@ -400,7 +411,7 @@ function UpcomingCard({ theme }) {
 
   if (loading) {
     return (
-      <div style={{ padding: "28px 16px", fontFamily: MONO, fontSize: 11, color: C.muted }}>
+      <div style={{ padding: isMobile ? "48px 20px" : "72px 24px", fontFamily: MONO, fontSize: isMobile ? 12 : 13, color: C.muted, textAlign: "center" }}>
         <span className="breathe" style={{ color: C.cyan }}>●</span> loading card · running predictions…
       </div>
     );
@@ -408,11 +419,11 @@ function UpcomingCard({ theme }) {
 
   if (err) {
     return (
-      <div style={{ padding: "24px 16px" }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: C.red, marginBottom: 12 }}>error: {err}</div>
+      <div style={{ padding: isMobile ? "40px 20px" : "56px 24px", textAlign: "center" }}>
+        <div style={{ fontFamily: MONO, fontSize: 12, color: C.red, marginBottom: 14 }}>error: {err}</div>
         <button type="button" onClick={load} style={{
-          fontFamily: MONO, fontSize: 11, color: C.muted, background: "none",
-          border: `1px solid ${C.borderB}`, padding: "6px 12px", borderRadius: 5, cursor: "pointer",
+          fontFamily: MONO, fontSize: 12, color: C.muted, background: "none",
+          border: `1px solid ${C.borderB}`, padding: "10px 16px", borderRadius: 6, cursor: "pointer",
         }}>↻ retry</button>
       </div>
     );
@@ -428,47 +439,83 @@ function UpcomingCard({ theme }) {
     ? data.event_name
     : `UFC: ${data.event_name}`;
 
+  const grid = {
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+    gap: 0,
+  };
+
   return (
     <div>
-      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.cyan, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div style={{
+        padding: isMobile ? "16px 16px 14px" : "22px 24px 18px",
+        borderBottom: `1px solid ${C.border}`,
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{
+            fontSize: isMobile ? 18 : 26,
+            fontWeight: 700,
+            color: C.cyan,
+            letterSpacing: -0.4,
+            lineHeight: 1.2,
+          }}>
             {eventTitle}
           </div>
-          <div style={{ fontSize: 10, marginTop: 2, color: C.dim, fontFamily: MONO }}>
-            {[data.event_date, fights.length && `${fights.length} fights`].filter(Boolean).join(" · ")}
+          <div style={{ fontSize: isMobile ? 11 : 12, marginTop: 6, color: C.muted, fontFamily: MONO, lineHeight: 1.5 }}>
+            {[data.event_date, data.location, fights.length && `${fights.length} fights`].filter(Boolean).join(" · ")}
           </div>
         </div>
         <button type="button" onClick={load} style={{
-          fontFamily: MONO, fontSize: 10, color: C.muted, background: "none",
-          border: `1px solid ${C.border}`, padding: "4px 8px", borderRadius: 4, cursor: "pointer", flexShrink: 0,
-        }}>↻</button>
+          fontFamily: MONO, fontSize: 11, color: C.muted, background: C.surface,
+          border: `1px solid ${C.borderB}`, padding: "8px 12px", borderRadius: 6, cursor: "pointer", flexShrink: 0,
+        }}>↻ refresh</button>
       </div>
 
       <div style={{
-        padding: "8px 16px", display: "flex", alignItems: "center", gap: 10,
-        borderBottom: `1px solid ${C.border}`, fontFamily: MONO, fontSize: 10,
+        padding: isMobile ? "10px 16px" : "12px 24px",
+        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        borderBottom: `1px solid ${C.border}`, fontFamily: MONO, fontSize: isMobile ? 11 : 12,
       }}>
         <span style={{ color: C.dim }}>Model</span>
-        <span style={{ color: C.muted }}>65.6% cv</span>
+        <span style={{ color: C.green }}>65.6%</span>
+        <span style={{ color: C.dim }}>cv</span>
         <span style={{ color: C.dim }}>·</span>
-        <span style={{ color: C.muted }}>7,190 fights</span>
+        <span style={{ color: C.muted }}>7,190 fights trained</span>
+        {!isMobile && (
+          <>
+            <span style={{ color: C.dim }}>·</span>
+            <span style={{ color: C.muted }}>xgboost + lightgbm</span>
+          </>
+        )}
       </div>
 
       {main.length > 0 && (
         <>
-          <SectionLabel theme={C}>Main Card</SectionLabel>
-          {main.map((f, i) => (
-            <FightRow key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i} theme={C} />
-          ))}
+          <SectionLabel theme={C} isMobile={isMobile}>Main Card</SectionLabel>
+          <div style={grid}>
+            {main.map((f, i) => (
+              <div key={`${f.red_fighter}|${f.blue_fighter}`} style={{ borderRight: !isMobile && i % 2 === 0 ? `1px solid ${C.border}` : "none" }}>
+                <FightRow fight={f} idx={i} theme={C} isMobile={isMobile} />
+              </div>
+            ))}
+          </div>
         </>
       )}
       {prelims.length > 0 && (
         <>
-          <SectionLabel theme={C}>Prelims</SectionLabel>
-          {prelims.map((f, i) => (
-            <FightRow key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i + main.length} theme={C} />
-          ))}
+          <SectionLabel theme={C} isMobile={isMobile}>Prelims</SectionLabel>
+          <div style={grid}>
+            {prelims.map((f, i) => (
+              <div key={`${f.red_fighter}|${f.blue_fighter}`} style={{ borderRight: !isMobile && i % 2 === 0 ? `1px solid ${C.border}` : "none" }}>
+                <FightRow fight={f} idx={i + main.length} theme={C} isMobile={isMobile} />
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>
@@ -476,7 +523,7 @@ function UpcomingCard({ theme }) {
 }
 
 /* ── Custom matchup ──────────────────────────────────────────────────────── */
-function CustomMatchup({ theme }) {
+function CustomMatchup({ theme, isMobile }) {
   const C = theme;
   const [rn,       setRn]       = useState("");
   const [bn,       setBn]       = useState("");
@@ -516,9 +563,9 @@ function CustomMatchup({ theme }) {
   }
 
   const inp = {
-    width: "100%", padding: "10px 14px", borderRadius: 6,
+    width: "100%", padding: isMobile ? "12px 14px" : "12px 16px", borderRadius: 6,
     border: `1px solid ${C.borderB}`, background: C.surface, color: C.fg,
-    outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box",
+    outline: "none", fontFamily: SANS, fontSize: 15, boxSizing: "border-box",
   };
   const sel = { ...inp, cursor: "pointer", appearance: "none", WebkitAppearance: "none" };
   const lbl = { fontFamily: MONO, fontSize: 10, color: C.muted, letterSpacing: 0.8, display: "block", marginBottom: 6 };
@@ -532,8 +579,16 @@ function CustomMatchup({ theme }) {
   } : null;
 
   return (
-    <div style={{ display: "grid", gap: 16, padding: "16px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div style={{
+      display: "grid",
+      gap: 16,
+      padding: isMobile ? "16px" : "24px",
+      maxWidth: 720,
+      width: "100%",
+      margin: "0 auto",
+      boxSizing: "border-box",
+    }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
         <div>
           <label style={{ ...lbl, color: C.red }}>red</label>
           <FighterSearch value={rn} onChange={setRn} placeholder="Search fighter…" accent={C.red} theme={C} />
@@ -544,8 +599,8 @@ function CustomMatchup({ theme }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
-        <div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 10 }}>
+        <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
           <label style={lbl}>weight</label>
           <div style={{ position: "relative" }}>
             <select style={sel} value={wc} onChange={(e) => setWc(e.target.value)}>
@@ -565,44 +620,58 @@ function CustomMatchup({ theme }) {
           <label style={lbl}>title</label>
           <button type="button" onClick={() => setTitle((v) => !v)} style={{ ...inp, cursor: "pointer", color: title ? C.green : C.dim, textAlign: "left" }}>{title ? "yes" : "no"}</button>
         </div>
+        {!isMobile && (
+          <div>
+            <label style={lbl}>vegas odds</label>
+            <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? C.green : C.dim, textAlign: "left" }}>{showOdds ? "on" : "off"}</button>
+          </div>
+        )}
       </div>
 
-      <div>
-        <label style={lbl}>vegas odds</label>
-        <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? C.green : C.dim, textAlign: "left" }}>{showOdds ? "included" : "off"}</button>
-      </div>
+      {isMobile && (
+        <div>
+          <label style={lbl}>vegas odds</label>
+          <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? C.green : C.dim, textAlign: "left" }}>{showOdds ? "included" : "off"}</button>
+        </div>
+      )}
 
       {showOdds && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
           <input style={{ ...inp, borderColor: `${C.red}55` }} placeholder="red -200" value={ro} onChange={(e) => setRo(e.target.value)} />
           <input style={{ ...inp, borderColor: `${C.cyan}55` }} placeholder="blue +150" value={bo} onChange={(e) => setBo(e.target.value)} />
         </div>
       )}
 
       <button type="button" disabled={busy} onClick={predict} style={{
-        padding: "11px 16px", borderRadius: 6, border: `1px solid ${busy ? C.border : C.cyan}55`,
+        padding: "14px 16px", borderRadius: 6, border: `1px solid ${busy ? C.border : C.cyan}55`,
         background: busy ? "transparent" : `${C.cyan}12`, color: busy ? C.dim : C.cyan,
-        fontFamily: MONO, fontSize: 12, cursor: busy ? "default" : "pointer", letterSpacing: 0.4,
+        fontFamily: MONO, fontSize: 13, cursor: busy ? "default" : "pointer", letterSpacing: 0.4,
       }}>
         {busy ? "analyzing…" : "→ predict fight"}
       </button>
 
-      {err && <div style={{ fontFamily: MONO, fontSize: 11, color: C.red }}>error: {err}</div>}
+      {err && <div style={{ fontFamily: MONO, fontSize: 12, color: C.red }}>error: {err}</div>}
 
       {fightCard && (
-        <div style={{ margin: "0 -16px", borderTop: `1px solid ${C.border}`, animation: "fd 280ms ease both" }}>
-          <FightRow fight={fightCard} idx={0} theme={C} />
+        <div style={{
+          margin: isMobile ? "0 -16px" : "8px 0 0",
+          border: `1px solid ${C.border}`,
+          borderRadius: isMobile ? 0 : 8,
+          overflow: "hidden",
+          animation: "fd 280ms ease both",
+        }}>
+          <FightRow fight={fightCard} idx={0} theme={C} isMobile={isMobile} />
           {res.value && res.value.r_vegas_pct > 0 && (
-            <div style={{ padding: "14px 16px" }}>
+            <div style={{ padding: isMobile ? "14px 16px" : "16px 20px", borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: C.cyan, marginBottom: 10, letterSpacing: 1 }}>VALUE</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
                 {[
                   { label: res.red_fighter,  model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: C.red },
                   { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: C.cyan },
                 ].map((f) => (
                   <div key={f.label}>
-                    <div style={{ fontFamily: MONO, fontSize: 10, color: f.color, marginBottom: 8 }}>{lastName(f.label)}</div>
-                    <div style={{ display: "grid", gap: 5, fontFamily: MONO, fontSize: 11 }}>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: f.color, marginBottom: 8 }}>{lastName(f.label)}</div>
+                    <div style={{ display: "grid", gap: 5, fontFamily: MONO, fontSize: 12 }}>
                       <Row label="model" val={fmtOdds(f.model / 100)} valColor={f.color} dim={C.dim} fg={C.fg} />
                       <Row label="book" val={fmtOdds(f.vegas / 100)} dim={C.dim} fg={C.fg} />
                       <Row label="edge" val={`${f.edge >= 0 ? "+" : ""}${f.edge?.toFixed(1)}%`} valColor={f.edge >= 8 ? C.green : f.edge >= 0 ? C.fg : C.red} dim={C.dim} fg={C.fg} />
@@ -639,11 +708,12 @@ function UFCPage({ isMobile, onBack }) {
       className="uf uf-wrap"
       data-theme={light ? "light" : "dark"}
       style={{
-        minHeight: "calc(100vh - 0px)",
+        minHeight: "100dvh",
         background: C.bg,
         color: C.fg,
         fontFamily: SANS,
         position: "relative",
+        width: "100%",
       }}
     >
       <style>{`
@@ -667,43 +737,54 @@ function UFCPage({ isMobile, onBack }) {
       `}</style>
 
       <div style={{
-        position: "relative", zIndex: 1,
-        maxWidth: isMobile ? "100%" : 420,
+        position: "relative",
+        zIndex: 1,
+        width: "100%",
+        maxWidth: 1100,
         margin: "0 auto",
-        minHeight: "100vh",
-        borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
-        borderRight: isMobile ? "none" : `1px solid ${C.border}`,
+        minHeight: "100dvh",
         background: C.bg,
         display: "flex",
         flexDirection: "column",
+        borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+        borderRight: isMobile ? "none" : `1px solid ${C.border}`,
       }}>
         {/* Top chrome */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 12px", borderBottom: `1px solid ${C.border}`, gap: 8,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: isMobile ? "12px 16px" : "14px 24px",
+          borderBottom: `1px solid ${C.border}`,
+          gap: 8,
+          background: `${C.bg}f2`,
+          backdropFilter: "blur(12px)",
         }}>
           <button type="button" onClick={onBack} style={{
-            background: "none", border: "none", color: C.muted, fontSize: 12,
-            fontFamily: SANS, padding: "4px 2px", cursor: "pointer",
+            background: "none", border: "none", color: C.muted, fontSize: isMobile ? 13 : 14,
+            fontFamily: SANS, padding: "6px 2px", cursor: "pointer",
           }}>
             ← back
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
             <button type="button" onClick={() => setLight((v) => !v)} title="Toggle theme" style={{
-              background: "none", border: "none", color: C.muted, fontSize: 14, cursor: "pointer", padding: 4,
+              background: "none", border: "none", color: C.muted, fontSize: 16, cursor: "pointer", padding: 6,
             }}>
               {light ? "☀" : "☽"}
             </button>
             <span style={{
-              fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 99,
+              fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 99,
               background: `${C.gold}18`, color: C.gold, border: `1px solid ${C.gold}33`,
               fontFamily: MONO,
             }}>
               Model
             </span>
             <span style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: 1, color: C.cyan,
-              opacity: 0.55, fontFamily: MONO,
+              fontSize: isMobile ? 10 : 11, fontWeight: 600, letterSpacing: 1.2, color: C.cyan,
+              opacity: 0.6, fontFamily: MONO,
             }}>
               octagon.sys
             </span>
@@ -711,17 +792,31 @@ function UFCPage({ isMobile, onBack }) {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
-          {[["upcoming", "card"], ["custom", "matchup"]].map(([id, lbl]) => (
+        <div style={{
+          display: "flex",
+          borderBottom: `1px solid ${C.border}`,
+          padding: isMobile ? "0 8px" : "0 16px",
+          background: C.bg,
+          position: "sticky",
+          top: isMobile ? 49 : 53,
+          zIndex: 19,
+        }}>
+          {[["upcoming", "upcoming card"], ["custom", "custom matchup"]].map(([id, lbl]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               style={{
-                flex: 1, background: "none", border: "none", cursor: "pointer",
-                fontFamily: MONO, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase",
+                flex: isMobile ? 1 : "0 0 auto",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: MONO,
+                fontSize: isMobile ? 11 : 12,
+                letterSpacing: 0.6,
+                textTransform: "uppercase",
                 color: tab === id ? C.cyan : C.muted,
-                padding: "10px 8px",
+                padding: isMobile ? "12px 8px" : "14px 20px",
                 borderBottom: `2px solid ${tab === id ? C.cyan : "transparent"}`,
                 marginBottom: -1,
               }}
@@ -731,8 +826,10 @@ function UFCPage({ isMobile, onBack }) {
           ))}
         </div>
 
-        <div style={{ flex: 1, overflow: "auto" }}>
-          {tab === "upcoming" ? <UpcomingCard theme={C} /> : <CustomMatchup theme={C} />}
+        <div style={{ flex: 1, width: "100%" }}>
+          {tab === "upcoming"
+            ? <UpcomingCard theme={C} isMobile={isMobile} />
+            : <CustomMatchup theme={C} isMobile={isMobile} />}
         </div>
       </div>
     </div>
@@ -779,7 +876,7 @@ export default function App() {
   const [page,     setPage]     = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const W        = useWindowSize();
-  const isMobile = W < 720;
+  const isMobile = W < 800;
 
   function go(p) { setPage(p); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
