@@ -1136,33 +1136,46 @@ function PortfolioHome({ isMobile, onOpenUfc }) {
         @keyframes fd { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
       `}</style>
 
-      <div className="site-wrap" style={{ position: "relative", zIndex: 1 }}>
+      <div className="site-wrap" style={{ position: "relative", zIndex: 1, width: "100%" }}>
         <nav style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: isMobile ? "0 24px" : "0 40px", height: 56,
           background: T.nav, backdropFilter: "blur(12px)",
           borderBottom: "1px solid rgba(224,221,213,0.04)",
         }}>
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 13, fontWeight: 500, letterSpacing: "-0.02em", color: T.fg, padding: 0,
+          <div style={{
+            maxWidth: 920,
+            width: "100%",
+            margin: "0 auto",
+            padding: isMobile ? "0 24px" : "0 40px",
+            height: 56,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxSizing: "border-box",
           }}>
-            {CONTENT.monogram}
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 24, fontFamily: MONO, fontSize: 11, color: "rgba(224,221,213,0.3)" }}>
-            <button type="button" className="nav-link" onClick={() => scrollTo("work")} style={{
-              background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
-            }}>work</button>
-            <button type="button" className="nav-link" onClick={() => scrollTo("about")} style={{
-              background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
-            }}>about</button>
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 13, fontWeight: 500, letterSpacing: "-0.02em", color: T.fg, padding: 0,
+            }}>
+              {CONTENT.monogram}
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 24, fontFamily: MONO, fontSize: 11, color: "rgba(224,221,213,0.3)" }}>
+              <button type="button" className="nav-link" onClick={() => scrollTo("work")} style={{
+                background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
+              }}>work</button>
+              <button type="button" className="nav-link" onClick={() => scrollTo("about")} style={{
+                background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
+              }}>about</button>
+            </div>
           </div>
         </nav>
 
         <main style={{
-          maxWidth: 920, margin: "0 auto",
+          maxWidth: 920,
+          width: "100%",
+          margin: "0 auto",
           padding: isMobile ? "120px 24px 80px" : "140px 40px 100px",
+          boxSizing: "border-box",
           animation: "fd 280ms ease both",
         }}>
           {/* Hero */}
