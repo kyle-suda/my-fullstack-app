@@ -9,6 +9,11 @@ Endpoints:
     GET  /next-card           — scrape next UFC.com event + predict
     GET  /weight_classes      — static weight class list
 
+Env:
+    CORS_ORIGINS   — comma-separated allowlist (defaults to kylesuda.com + local Vite)
+    FLASK_PORT     — listen port (default 5001)
+    FLASK_DEBUG    — "1" for Flask debug
+
 Usage:
     python src/api.py               # dev mode (port 5001)
     FLASK_PORT=8080 python src/api.py
@@ -27,9 +32,39 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-CORS(app)
+# Railway / reverse proxies set X-Forwarded-For
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
+_DEFAULT_ORIGINS = (
+    "https://kylesuda.com,"
+    "https://www.kylesuda.com,"
+    "http://localhost:5173,"
+    "http://127.0.0.1:5173"
+)
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
+    if o.strip()
+]
+CORS(
+    app,
+    origins=ALLOWED_ORIGINS,
+    methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
+)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["90 per minute"],
+    storage_uri="memory://",
+    headers_enabled=True,
+)
 
 # ── load predictor once at startup ──────────────────────────────────────────
 predictor = None
@@ -76,6 +111,14 @@ def _load():
 @app.before_request
 def ensure_loaded():
     _load()
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        "error": "Too many requests — please slow down",
+        "retry_after": getattr(e, "description", None),
+    }), 429
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
@@ -327,11 +370,13 @@ def _scrape_ufc_com_next_card():
 # ── routes ──────────────────────────────────────────────────────────────────
 
 @app.get("/health")
+@limiter.exempt
 def health():
     return jsonify({"status": "ok", "fighters_loaded": len(fighter_names)})
 
 
 @app.get("/fighters")
+@limiter.limit("60 per minute")
 def get_fighters():
     """Return the list of all known fighter names for autocomplete."""
     q = request.args.get("q", "").strip().lower()
@@ -343,6 +388,7 @@ def get_fighters():
 
 
 @app.post("/predict")
+@limiter.limit("30 per minute")
 def predict():
     """
     Predict a single fight.
@@ -381,6 +427,7 @@ def predict():
 
 
 @app.post("/card")
+@limiter.limit("10 per minute")
 def predict_card():
     """Predict multiple fights at once."""
     body = request.get_json(force=True, silent=True) or {}
@@ -411,6 +458,7 @@ def predict_card():
 
 
 @app.get("/next-card")
+@limiter.limit("12 per hour")
 def next_card():
     """
     Scrape the next upcoming UFC event from UFC.com and return predictions
@@ -461,6 +509,7 @@ def next_card():
 
 
 @app.get("/weight_classes")
+@limiter.limit("60 per minute")
 def get_weight_classes():
     return jsonify({"weight_classes": WEIGHT_CLASSES})
 
