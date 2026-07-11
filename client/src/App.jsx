@@ -600,10 +600,12 @@ function UpcomingCard({ theme, isMobile }) {
       borderBottom: isMobile ? `1px solid ${C.border}` : "none",
       display: "flex",
       flexDirection: "column",
+      minHeight: isMobile ? "auto" : 0,
+      height: isMobile ? "auto" : "100%",
       maxHeight: isMobile ? "none" : "100%",
       background: C.bg,
     }}>
-      <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: C.cyan, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -622,7 +624,7 @@ function UpcomingCard({ theme, isMobile }) {
 
       <div style={{
         padding: "8px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-        borderBottom: `1px solid ${C.border}`, fontFamily: MONO, fontSize: 10,
+        borderBottom: `1px solid ${C.border}`, fontFamily: MONO, fontSize: 10, flexShrink: 0,
       }}>
         <span style={{ color: C.dim }}>Model</span>
         <span style={{ color: C.green }}>65.6%</span>
@@ -631,7 +633,12 @@ function UpcomingCard({ theme, isMobile }) {
         <span style={{ color: C.muted }}>7,190 fights</span>
       </div>
 
-      <div style={{ overflowY: "auto", flex: 1 }}>
+      <div style={{
+        overflowY: isMobile ? "visible" : "auto",
+        flex: isMobile ? "none" : 1,
+        minHeight: isMobile ? "auto" : 0,
+        WebkitOverflowScrolling: "touch",
+      }}>
         {main.length > 0 && (
           <>
             <SectionLabel theme={C}>Main Card</SectionLabel>
@@ -674,10 +681,12 @@ function UpcomingCard({ theme, isMobile }) {
 
   const detail = (
     <main style={{
-      flex: 1,
+      flex: isMobile ? "none" : 1,
       minWidth: 0,
-      overflowY: "auto",
-      padding: isMobile ? "20px 16px 40px" : "28px 36px 48px",
+      minHeight: isMobile ? "auto" : 0,
+      overflowY: isMobile ? "visible" : "auto",
+      WebkitOverflowScrolling: "touch",
+      padding: isMobile ? "20px 16px 48px" : "28px 36px 48px",
       background: C.bg,
     }}>
       <h1 style={{
@@ -717,11 +726,11 @@ function UpcomingCard({ theme, isMobile }) {
 
   return (
     <div style={{
-      flex: 1,
+      flex: isMobile ? "0 0 auto" : 1,
       display: "flex",
       flexDirection: isMobile ? "column" : "row",
-      minHeight: 0,
-      overflow: "hidden",
+      minHeight: isMobile ? "min-content" : 0,
+      overflow: isMobile ? "visible" : "hidden",
     }}>
       {sidebar}
       {detail}
@@ -786,8 +795,10 @@ function CustomMatchup({ theme, isMobile }) {
 
   return (
     <div style={{
-      flex: 1, overflowY: "auto",
+      flex: isMobile ? "none" : 1,
+      overflowY: isMobile ? "visible" : "auto",
       padding: isMobile ? 16 : 28,
+      minHeight: isMobile ? "auto" : 0,
     }}>
       <div style={{ display: "grid", gap: 16, maxWidth: 720, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
@@ -894,6 +905,7 @@ function UFCPage({ isMobile, onBack }) {
       data-theme={light ? "light" : "dark"}
       style={{
         height: "100dvh",
+        maxHeight: "100dvh",
         background: C.bg,
         color: C.fg,
         fontFamily: SANS,
@@ -901,44 +913,62 @@ function UFCPage({ isMobile, onBack }) {
         width: "100%",
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
+        /* Mobile: this element IS the scrollport (iOS-safe). Desktop: lock to viewport. */
+        overflowX: "hidden",
+        overflowY: isMobile ? "auto" : "hidden",
+        WebkitOverflowScrolling: "touch",
+        overscrollBehavior: "contain",
+        touchAction: "pan-y",
       }}
     >
       <style>{`
         .uf-wrap::before {
           content: '';
-          position: fixed;
+          position: absolute;
           inset: 0;
           background-image: radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
           background-size: 20px 20px;
           pointer-events: none;
           z-index: 0;
         }
-        .fight-row { transition: background 0.15s ease; }
+        .fight-row { transition: background 0.15s ease; -webkit-tap-highlight-color: transparent; }
         .fight-row:hover { background: ${C.elevated} !important; }
         @keyframes uf-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
         .breathe { animation: uf-breathe 2.4s ease-in-out infinite; }
         @keyframes fd { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        /* CSS fallback if JS isMobile misses a phone width */
+        @media (max-width: 799px) {
+          .uf-wrap {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+          }
+        }
       `}</style>
 
       <div style={{
         position: "relative",
         zIndex: 1,
         width: "100%",
-        height: "100%",
+        flex: isMobile ? "0 0 auto" : 1,
+        minHeight: isMobile ? "min-content" : 0,
         display: "flex",
         flexDirection: "column",
         background: C.bg,
       }}>
         {/* Top chrome */}
         <div style={{
+          position: isMobile ? "sticky" : "relative",
+          top: 0,
+          zIndex: 30,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: isMobile ? "10px 14px" : "10px 16px",
           borderBottom: `1px solid ${C.border}`,
           gap: 8,
-          background: `${C.bg}f2`,
+          background: `${C.bg}f5`,
           backdropFilter: "blur(12px)",
           flexShrink: 0,
         }}>
@@ -972,6 +1002,9 @@ function UFCPage({ isMobile, onBack }) {
 
         {/* Tabs */}
         <div style={{
+          position: isMobile ? "sticky" : "relative",
+          top: isMobile ? 45 : 0,
+          zIndex: 29,
           display: "flex",
           borderBottom: `1px solid ${C.border}`,
           padding: "0 8px",

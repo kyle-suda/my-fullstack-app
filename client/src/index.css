@@ -13,6 +13,11 @@ body,
   min-height: 100%;
 }
 
+html {
+  /* avoid overflow-x:hidden on html — it breaks vertical scroll on iOS Safari */
+  overflow-x: clip;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -22,6 +27,7 @@ body {
   font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
 }
 
 #root {
