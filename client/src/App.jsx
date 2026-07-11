@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const UFC_API = (import.meta.env.VITE_UFC_API || "https://vibrant-healing-ufc-api-production.up.railway.app").replace(/\/$/, "");
-const MONO = `"SF Mono","JetBrains Mono","Fira Code","Consolas",monospace`;
-const SANS = `-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif`;
+const MONO = `"IBM Plex Mono","SF Mono","Menlo",monospace`;
+const SANS = `"DM Sans",system-ui,sans-serif`;
 
 const T = {
   bg:     "#090909",
@@ -17,6 +17,41 @@ const T = {
   blue:   "#60a5fa",
   yellow: "#fbbf24",
   purple: "#a78bfa",
+};
+
+/* octagon.sys-inspired UFC theme (matches joshabrams.dev/projects/ufc-picks) */
+const UF = {
+  bg: "#0a0b10",
+  surface: "#11121a",
+  elevated: "#1a1b25",
+  fg: "#dfe1e8",
+  muted: "#6a6e80",
+  dim: "#33374a",
+  border: "rgba(255,255,255,0.05)",
+  borderB: "rgba(255,255,255,0.1)",
+  cyan: "#00e5ff",
+  gold: "#d4a853",
+  green: "#00e676",
+  red: "#ff3b5c",
+  amber: "#ffab00",
+  purple: "#b388ff",
+};
+
+const UF_LIGHT = {
+  bg: "#f5f3f0",
+  surface: "#ffffff",
+  elevated: "#f0ede8",
+  fg: "#1a1a1a",
+  muted: "#6b6b6b",
+  dim: "#a0a0a0",
+  border: "rgba(0,0,0,0.08)",
+  borderB: "rgba(0,0,0,0.15)",
+  cyan: "#0077b6",
+  gold: "#996515",
+  green: "#059669",
+  red: "#dc2626",
+  amber: "#d97706",
+  purple: "#7c3aed",
 };
 
 /* ── Content ─────────────────────────────────────────────────────────────── */
@@ -113,13 +148,6 @@ function useWindowSize() {
 }
 
 /* ── Shared primitives ───────────────────────────────────────────────────── */
-const MC = {
-  "KO/TKO":          T.red,
-  "Submission":      T.purple,
-  "Decision":        T.blue,
-  "Other/No Contest": "#6b7280",
-};
-
 function toAmericanOdds(prob) {
   const p = Math.max(0.01, Math.min(0.99, prob));
   if (p >= 0.5) return Math.round(-(p / (1 - p)) * 100);
@@ -128,6 +156,17 @@ function toAmericanOdds(prob) {
 function fmtOdds(prob) {
   const o = toAmericanOdds(prob);
   return o > 0 ? `+${o}` : `${o}`;
+}
+
+function lastName(full) {
+  const parts = String(full || "").trim().split(/\s+/).filter(Boolean);
+  return parts[parts.length - 1] || full || "";
+}
+
+function confidenceLevel(pct) {
+  if (pct >= 65) return "high";
+  if (pct >= 55) return "medium";
+  return "low";
 }
 
 function Lbl({ children, color }) {
@@ -141,90 +180,95 @@ function Lbl({ children, color }) {
   );
 }
 
-/* ── FightCard ───────────────────────────────────────────────────────────── */
-function FightCard({ fight, idx, isMobile }) {
+/* ── Fight row (octagon.sys layout) ──────────────────────────────────────── */
+function FightRow({ fight, theme, idx }) {
+  const C = theme;
   if (fight.error) {
     return (
-      <div style={{ padding: "14px 0", borderBottom: `1px solid ${T.bd}`, color: T.dim, fontSize: 12, fontFamily: MONO }}>
+      <div style={{ padding: "10px 12px", borderBottom: `1px solid ${C.border}`, color: C.muted, fontSize: 11, fontFamily: MONO }}>
         {fight.red_fighter} vs {fight.blue_fighter} — {fight.error}
       </div>
     );
   }
 
-  const winRed = fight.winner === fight.red_fighter;
-  const rPct   = fight.red_win_probability  ?? 50;
-  const bPct   = fight.blue_win_probability ?? 50;
-  const mProbs = fight.method_probs || {};
+  const rPct = fight.red_win_probability ?? 50;
+  const bPct = fight.blue_win_probability ?? 50;
+  const winRed = fight.winner
+    ? fight.winner === fight.red_fighter
+    : rPct >= bPct;
+  const top = winRed
+    ? { name: fight.red_fighter, pct: rPct }
+    : { name: fight.blue_fighter, pct: bPct };
+  const bot = winRed
+    ? { name: fight.blue_fighter, pct: bPct }
+    : { name: fight.red_fighter, pct: rPct };
+  const conf = confidenceLevel(top.pct);
+  const confStyle = conf === "high"
+    ? { background: `${C.green}22`, color: C.green }
+    : conf === "medium"
+      ? { background: "rgba(255,171,0,0.15)", color: C.amber }
+      : { background: `${C.dim}33`, color: C.muted };
 
   return (
-    <div style={{ borderBottom: `1px solid ${T.bd}`, padding: "20px 0", animation: `fd 180ms ease ${idx * 35}ms both` }}>
-
-      {/* Meta */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
-        {fight.is_main_event  && <span style={{ fontFamily: MONO, fontSize: 9,  color: T.red,    letterSpacing: 1.2, fontWeight: 800 }}>MAIN</span>}
-        {fight.is_title_fight && <span style={{ fontFamily: MONO, fontSize: 9,  color: T.yellow, letterSpacing: 1.2, fontWeight: 800 }}>TITLE</span>}
-        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{fight.weight_class}</span>
-      </div>
-
-      {/* Fighters */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
-        {/* Red */}
-        <div>
-          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: winRed ? T.red : T.text, lineHeight: 1.2, marginBottom: 6 }}>
-            {fight.red_fighter}
-            {winRed && <span style={{ marginLeft: 8, fontFamily: MONO, fontSize: 9, color: T.red }}>pick</span>}
-          </div>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 22 : 26, fontWeight: 700, color: T.red, lineHeight: 1 }}>{rPct.toFixed(1)}%</div>
-          <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginTop: 4 }}>{fmtOdds(rPct / 100)}</div>
-          {fight.r_elo && <div style={{ fontFamily: MONO, fontSize: 10, marginTop: 3, color: "#2a2a40" }}>elo {fight.r_elo}</div>}
-        </div>
-
-        {/* Bar */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, width: isMobile ? 48 : 60 }}>
-          <div style={{ width: "100%", height: 2, background: T.faint, borderRadius: 99, overflow: "hidden", position: "relative" }}>
-            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${rPct}%`, background: T.red, borderRadius: "99px 0 0 99px" }} />
-            <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: `${bPct}%`, background: T.blue, borderRadius: "0 99px 99px 0" }} />
-          </div>
-          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: 1, color: "#28283c" }}>vs</span>
-        </div>
-
-        {/* Blue */}
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: !winRed ? T.blue : T.text, lineHeight: 1.2, marginBottom: 6 }}>
-            {!winRed && <span style={{ marginRight: 8, fontFamily: MONO, fontSize: 9, color: T.blue }}>pick</span>}
-            {fight.blue_fighter}
-          </div>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 22 : 26, fontWeight: 700, color: T.blue, lineHeight: 1 }}>{bPct.toFixed(1)}%</div>
-          <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginTop: 4 }}>{fmtOdds(bPct / 100)}</div>
-          {fight.b_elo && <div style={{ fontFamily: MONO, fontSize: 10, marginTop: 3, color: "#28283c" }}>elo {fight.b_elo}</div>}
-        </div>
-      </div>
-
-      {/* Method row */}
-      {(Object.keys(mProbs).length > 0 || fight.predicted_method) && (
-        <div style={{ marginTop: 14, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-          {["KO/TKO", "Decision", "Submission"].map((m) => {
-            const pct = mProbs[m] ?? 0;
-            if (pct < 1) return null;
-            return (
-              <span key={m} style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
-                <span style={{ color: MC[m] }}>{m}</span> {pct.toFixed(0)}%
+    <div
+      className="fight-row"
+      style={{
+        borderBottom: `1px solid ${C.border}`,
+        animation: `fd 180ms ease ${idx * 28}ms both`,
+      }}
+    >
+      <div style={{ padding: "8px 12px" }}>
+        <div style={{ display: "grid", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+              <div style={{ width: 6, height: 6, borderRadius: 99, background: C.muted, flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: C.fg, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {top.name}
               </span>
-            );
-          })}
+            </div>
+            <span style={{ fontSize: 10, color: C.dim, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(top.pct / 100)}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+              <div style={{ width: 6, height: 6, flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: C.fg, opacity: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {bot.name}
+              </span>
+            </div>
+            <span style={{ fontSize: 10, color: C.dim, fontFamily: MONO, flexShrink: 0 }}>{fmtOdds(bot.pct / 100)}</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+          <span style={{
+            fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+            background: C.muted, color: "#fff", fontFamily: MONO,
+          }}>
+            {lastName(top.name)}
+          </span>
+          <span style={{ fontSize: 10, color: C.cyan, fontFamily: MONO }}>{top.pct.toFixed(1)}%</span>
           {fight.predicted_method && (
-            <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: "auto" }}>
-              → {fight.predicted_method}{fight.predicted_round ? ` R${fight.predicted_round}` : ""}
+            <span style={{ fontSize: 8, fontWeight: 500, color: C.purple }}>
+              {fight.predicted_method}
+            </span>
+          )}
+          <span style={{ fontSize: 7, fontWeight: 700, padding: "2px 4px", borderRadius: 4, ...confStyle }}>
+            {conf}
+          </span>
+          {fight.weight_class && (
+            <span style={{ fontSize: 8, color: C.dim, fontFamily: MONO, marginLeft: "auto" }}>
+              {fight.weight_class}
             </span>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 /* ── Fighter autocomplete ────────────────────────────────────────────────── */
-function FighterSearch({ value, onChange, placeholder, accent }) {
+function FighterSearch({ value, onChange, placeholder, accent, theme }) {
+  const C = theme || UF;
   const [query, setQuery] = useState(value || "");
   const [suggs, setSuggs] = useState([]);
   const [open,  setOpen]  = useState(false);
@@ -258,9 +302,9 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
   const clear = ()  => { setQuery(""); setSuggs([]); setOpen(false); onChange(""); };
 
   const base = {
-    width: "100%", padding: "10px 14px", borderRadius: 7,
-    border: `1px solid ${accent ? accent + "44" : T.bd}`, background: T.surf,
-    color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box",
+    width: "100%", padding: "10px 14px", borderRadius: 6,
+    border: `1px solid ${accent ? accent + "44" : C.borderB}`, background: C.surface,
+    color: C.fg, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box",
   };
 
   return (
@@ -277,7 +321,7 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
         <button
           type="button"
           onClick={clear}
-          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.dim, fontFamily: MONO, fontSize: 11, padding: 2 }}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, fontFamily: MONO, fontSize: 11, padding: 2 }}
         >
           {busy ? "···" : "×"}
         </button>
@@ -285,13 +329,13 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
       {open && suggs.length > 0 && (
         <div style={{
           position: "absolute", zIndex: 60, top: "calc(100% + 4px)", left: 0, right: 0,
-          background: "#0b0b12", border: `1px solid ${T.bd}`, borderRadius: 7,
-          maxHeight: 220, overflowY: "auto", boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
+          background: C.elevated, border: `1px solid ${C.borderB}`, borderRadius: 6,
+          maxHeight: 220, overflowY: "auto", boxShadow: "0 20px 50px rgba(0,0,0,0.55)",
         }}>
           {suggs.slice(0, 20).map((n) => (
             <div key={n} onClick={() => pick(n)}
-              style={{ padding: "9px 14px", cursor: "pointer", fontSize: 13, color: T.text, borderBottom: `1px solid ${T.bd}` }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = T.surf)}
+              style={{ padding: "9px 14px", cursor: "pointer", fontSize: 13, color: C.fg, borderBottom: `1px solid ${C.border}` }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = C.surface)}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               {n}
@@ -303,8 +347,27 @@ function FighterSearch({ value, onChange, placeholder, accent }) {
   );
 }
 
+function SectionLabel({ children, theme }) {
+  const C = theme;
+  return (
+    <div style={{
+      padding: "10px 12px 6px",
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      color: C.cyan,
+      fontFamily: MONO,
+      borderBottom: `1px solid ${C.border}`,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 /* ── Upcoming card ───────────────────────────────────────────────────────── */
-function UpcomingCard({ isMobile }) {
+function UpcomingCard({ theme }) {
+  const C = theme;
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(false);
   const [err,     setErr]     = useState(null);
@@ -337,47 +400,84 @@ function UpcomingCard({ isMobile }) {
 
   if (loading) {
     return (
-      <div style={{ padding: "60px 0" }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>loading upcoming card · running predictions...</div>
-        <div style={{ fontFamily: MONO, fontSize: 11, marginTop: 6, color: "#252535" }}>~20–30 seconds</div>
+      <div style={{ padding: "28px 16px", fontFamily: MONO, fontSize: 11, color: C.muted }}>
+        <span className="breathe" style={{ color: C.cyan }}>●</span> loading card · running predictions…
       </div>
     );
   }
 
   if (err) {
     return (
-      <div style={{ padding: "40px 0" }}>
-        <div style={{ fontFamily: MONO, fontSize: 12, color: T.red, marginBottom: 14 }}>error: {err}</div>
-        <button onClick={load} style={{ fontFamily: MONO, fontSize: 12, color: T.dim, background: "none", border: `1px solid ${T.bd}`, padding: "7px 14px", borderRadius: 6, cursor: "pointer" }}>↻ retry</button>
+      <div style={{ padding: "24px 16px" }}>
+        <div style={{ fontFamily: MONO, fontSize: 11, color: C.red, marginBottom: 12 }}>error: {err}</div>
+        <button type="button" onClick={load} style={{
+          fontFamily: MONO, fontSize: 11, color: C.muted, background: "none",
+          border: `1px solid ${C.borderB}`, padding: "6px 12px", borderRadius: 5, cursor: "pointer",
+        }}>↻ retry</button>
       </div>
     );
   }
 
   if (!data) return null;
 
+  const fights = data.predictions || [];
+  const mainN = fights.length > 5 ? 5 : Math.max(1, Math.min(fights.length, fights.length <= 5 ? fights.length : 5));
+  const main = fights.slice(0, mainN);
+  const prelims = fights.slice(mainN);
+  const eventTitle = /ufc/i.test(data.event_name || "")
+    ? data.event_name
+    : `UFC: ${data.event_name}`;
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 16, marginBottom: 4, borderBottom: `1px solid ${T.bd}` }}>
-        <div>
-          <div style={{ fontSize: isMobile ? 17 : 21, fontWeight: 800, letterSpacing: -0.5, color: T.text, marginBottom: 4 }}>
-            {data.event_name}
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.cyan, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {eventTitle}
           </div>
-          <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
-            {[data.event_date, data.location, data.predictions?.length && `${data.predictions.length} fights`].filter(Boolean).join(" · ")}
+          <div style={{ fontSize: 10, marginTop: 2, color: C.dim, fontFamily: MONO }}>
+            {[data.event_date, fights.length && `${fights.length} fights`].filter(Boolean).join(" · ")}
           </div>
         </div>
-        <button onClick={load} style={{ fontFamily: MONO, fontSize: 11, color: T.dim, background: "none", border: `1px solid ${T.bd}`, padding: "6px 12px", borderRadius: 6, cursor: "pointer", flexShrink: 0 }}>↻ refresh</button>
+        <button type="button" onClick={load} style={{
+          fontFamily: MONO, fontSize: 10, color: C.muted, background: "none",
+          border: `1px solid ${C.border}`, padding: "4px 8px", borderRadius: 4, cursor: "pointer", flexShrink: 0,
+        }}>↻</button>
       </div>
 
-      {(data.predictions || []).map((f, i) => (
-        <FightCard key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i} isMobile={isMobile} />
-      ))}
+      <div style={{
+        padding: "8px 16px", display: "flex", alignItems: "center", gap: 10,
+        borderBottom: `1px solid ${C.border}`, fontFamily: MONO, fontSize: 10,
+      }}>
+        <span style={{ color: C.dim }}>Model</span>
+        <span style={{ color: C.muted }}>65.6% cv</span>
+        <span style={{ color: C.dim }}>·</span>
+        <span style={{ color: C.muted }}>7,190 fights</span>
+      </div>
+
+      {main.length > 0 && (
+        <>
+          <SectionLabel theme={C}>Main Card</SectionLabel>
+          {main.map((f, i) => (
+            <FightRow key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i} theme={C} />
+          ))}
+        </>
+      )}
+      {prelims.length > 0 && (
+        <>
+          <SectionLabel theme={C}>Prelims</SectionLabel>
+          {prelims.map((f, i) => (
+            <FightRow key={`${f.red_fighter}|${f.blue_fighter}`} fight={f} idx={i + main.length} theme={C} />
+          ))}
+        </>
+      )}
     </div>
   );
 }
 
 /* ── Custom matchup ──────────────────────────────────────────────────────── */
-function CustomMatchup({ isMobile }) {
+function CustomMatchup({ theme }) {
+  const C = theme;
   const [rn,       setRn]       = useState("");
   const [bn,       setBn]       = useState("");
   const [wc,       setWc]       = useState("Lightweight");
@@ -415,9 +515,13 @@ function CustomMatchup({ isMobile }) {
     finally { setBusy(false); }
   }
 
-  const inp = { width: "100%", padding: "10px 14px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.surf, color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box" };
+  const inp = {
+    width: "100%", padding: "10px 14px", borderRadius: 6,
+    border: `1px solid ${C.borderB}`, background: C.surface, color: C.fg,
+    outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box",
+  };
   const sel = { ...inp, cursor: "pointer", appearance: "none", WebkitAppearance: "none" };
-  const lbl = { fontFamily: MONO, fontSize: 10, color: T.dim, letterSpacing: 0.8, display: "block", marginBottom: 6 };
+  const lbl = { fontFamily: MONO, fontSize: 10, color: C.muted, letterSpacing: 0.8, display: "block", marginBottom: 6 };
 
   const fightCard = res ? {
     red_fighter: res.red_fighter, blue_fighter: res.blue_fighter,
@@ -428,91 +532,81 @@ function CustomMatchup({ isMobile }) {
   } : null;
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+    <div style={{ display: "grid", gap: 16, padding: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
-          <label style={{ ...lbl, color: T.red }}>red corner</label>
-          <FighterSearch value={rn} onChange={setRn} placeholder="Search fighter…" accent={T.red} />
+          <label style={{ ...lbl, color: C.red }}>red</label>
+          <FighterSearch value={rn} onChange={setRn} placeholder="Search fighter…" accent={C.red} theme={C} />
         </div>
         <div>
-          <label style={{ ...lbl, color: T.blue }}>blue corner</label>
-          <FighterSearch value={bn} onChange={setBn} placeholder="Search fighter…" accent={T.blue} />
+          <label style={{ ...lbl, color: C.cyan }}>blue</label>
+          <FighterSearch value={bn} onChange={setBn} placeholder="Search fighter…" accent={C.cyan} theme={C} />
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10 }}>
         <div>
-          <label style={lbl}>weight class</label>
+          <label style={lbl}>weight</label>
           <div style={{ position: "relative" }}>
             <select style={sel} value={wc} onChange={(e) => setWc(e.target.value)}>
               {WEIGHT_CLASSES.map((w) => <option key={w} value={w}>{w}</option>)}
             </select>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: T.dim, fontSize: 11 }}>▾</span>
+            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: C.dim, fontSize: 11 }}>▾</span>
           </div>
         </div>
         <div>
           <label style={lbl}>rounds</label>
-          <div style={{ position: "relative" }}>
-            <select style={sel} value={rds} onChange={(e) => setRds(Number(e.target.value))}>
-              <option value={3}>3</option>
-              <option value={5}>5</option>
-            </select>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: T.dim, fontSize: 11 }}>▾</span>
-          </div>
+          <select style={sel} value={rds} onChange={(e) => setRds(Number(e.target.value))}>
+            <option value={3}>3</option>
+            <option value={5}>5</option>
+          </select>
         </div>
         <div>
-          <label style={lbl}>title fight</label>
-          <button type="button" onClick={() => setTitle((v) => !v)} style={{ ...inp, cursor: "pointer", color: title ? T.green : T.dim, textAlign: "left" }}>{title ? "yes" : "no"}</button>
-        </div>
-        <div>
-          <label style={lbl}>include odds</label>
-          <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? T.green : T.dim, textAlign: "left" }}>{showOdds ? "yes" : "no"}</button>
+          <label style={lbl}>title</label>
+          <button type="button" onClick={() => setTitle((v) => !v)} style={{ ...inp, cursor: "pointer", color: title ? C.green : C.dim, textAlign: "left" }}>{title ? "yes" : "no"}</button>
         </div>
       </div>
 
+      <div>
+        <label style={lbl}>vegas odds</label>
+        <button type="button" onClick={() => setShowOdds((v) => !v)} style={{ ...inp, cursor: "pointer", color: showOdds ? C.green : C.dim, textAlign: "left" }}>{showOdds ? "included" : "off"}</button>
+      </div>
+
       {showOdds && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={{ ...lbl, color: T.red }}>red odds (american)</label>
-            <input style={{ ...inp, borderColor: `${T.red}44` }} placeholder="-200 or +150" value={ro} onChange={(e) => setRo(e.target.value)} />
-          </div>
-          <div>
-            <label style={{ ...lbl, color: T.blue }}>blue odds (american)</label>
-            <input style={{ ...inp, borderColor: `${T.blue}44` }} placeholder="-200 or +150" value={bo} onChange={(e) => setBo(e.target.value)} />
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <input style={{ ...inp, borderColor: `${C.red}55` }} placeholder="red -200" value={ro} onChange={(e) => setRo(e.target.value)} />
+          <input style={{ ...inp, borderColor: `${C.cyan}55` }} placeholder="blue +150" value={bo} onChange={(e) => setBo(e.target.value)} />
         </div>
       )}
 
       <button type="button" disabled={busy} onClick={predict} style={{
-        padding: "11px 20px", borderRadius: 7, border: `1px solid ${busy ? T.bd : T.dim}`,
-        background: "none", color: busy ? T.dim : T.text, fontFamily: MONO,
-        fontSize: 13, cursor: busy ? "default" : "pointer", letterSpacing: 0.5,
-        transition: "border-color 150ms",
+        padding: "11px 16px", borderRadius: 6, border: `1px solid ${busy ? C.border : C.cyan}55`,
+        background: busy ? "transparent" : `${C.cyan}12`, color: busy ? C.dim : C.cyan,
+        fontFamily: MONO, fontSize: 12, cursor: busy ? "default" : "pointer", letterSpacing: 0.4,
       }}>
-        {busy ? "analyzing..." : "→ predict fight"}
+        {busy ? "analyzing…" : "→ predict fight"}
       </button>
 
-      {err && <div style={{ fontFamily: MONO, fontSize: 12, color: T.red }}>error: {err}</div>}
+      {err && <div style={{ fontFamily: MONO, fontSize: 11, color: C.red }}>error: {err}</div>}
 
       {fightCard && (
-        <div style={{ animation: "fd 280ms ease both" }}>
-          <FightCard fight={fightCard} idx={0} isMobile={isMobile} />
+        <div style={{ margin: "0 -16px", borderTop: `1px solid ${C.border}`, animation: "fd 280ms ease both" }}>
+          <FightRow fight={fightCard} idx={0} theme={C} />
           {res.value && res.value.r_vegas_pct > 0 && (
-            <div style={{ paddingTop: 16, marginTop: 4 }}>
-              <Lbl>value analysis</Lbl>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div style={{ padding: "14px 16px" }}>
+              <div style={{ fontFamily: MONO, fontSize: 10, color: C.cyan, marginBottom: 10, letterSpacing: 1 }}>VALUE</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 {[
-                  { label: res.red_fighter,  model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: T.red },
-                  { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: T.blue },
+                  { label: res.red_fighter,  model: res.value.r_model_pct, vegas: res.value.r_vegas_pct, edge: res.value.r_edge, kelly: res.value.r_kelly, color: C.red },
+                  { label: res.blue_fighter, model: res.value.b_model_pct, vegas: res.value.b_vegas_pct, edge: res.value.b_edge, kelly: res.value.b_kelly, color: C.cyan },
                 ].map((f) => (
                   <div key={f.label}>
-                    <div style={{ fontFamily: MONO, fontSize: 11, color: f.color, marginBottom: 8 }}>{f.label}</div>
-                    <div style={{ display: "grid", gap: 5, fontFamily: MONO, fontSize: 12 }}>
-                      <Row label="model"        val={fmtOdds(f.model / 100)} valColor={f.color} />
-                      <Row label="book (vig-adj)" val={fmtOdds(f.vegas / 100)} />
-                      <div style={{ height: 1, background: T.faint, margin: "2px 0" }} />
-                      <Row label="edge" val={`${f.edge >= 0 ? "+" : ""}${f.edge?.toFixed(1)}%`} valColor={f.edge >= 8 ? T.green : f.edge >= 0 ? T.text : T.red} />
-                      {f.kelly > 0 && <Row label="kelly (¼)" val={`${(f.kelly * 0.25).toFixed(1)}%`} valColor={T.green} />}
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: f.color, marginBottom: 8 }}>{lastName(f.label)}</div>
+                    <div style={{ display: "grid", gap: 5, fontFamily: MONO, fontSize: 11 }}>
+                      <Row label="model" val={fmtOdds(f.model / 100)} valColor={f.color} dim={C.dim} fg={C.fg} />
+                      <Row label="book" val={fmtOdds(f.vegas / 100)} dim={C.dim} fg={C.fg} />
+                      <Row label="edge" val={`${f.edge >= 0 ? "+" : ""}${f.edge?.toFixed(1)}%`} valColor={f.edge >= 8 ? C.green : f.edge >= 0 ? C.fg : C.red} dim={C.dim} fg={C.fg} />
+                      {f.kelly > 0 && <Row label="kelly ¼" val={`${(f.kelly * 0.25).toFixed(1)}%`} valColor={C.green} dim={C.dim} fg={C.fg} />}
                     </div>
                   </div>
                 ))}
@@ -525,50 +619,122 @@ function CustomMatchup({ isMobile }) {
   );
 }
 
-function Row({ label, val, valColor }) {
+function Row({ label, val, valColor, dim, fg }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-      <span style={{ color: T.dim }}>{label}</span>
-      <span style={{ color: valColor || T.text }}>{val}</span>
+      <span style={{ color: dim || T.dim }}>{label}</span>
+      <span style={{ color: valColor || fg || T.text }}>{val}</span>
     </div>
   );
 }
 
-/* ── UFC Page ────────────────────────────────────────────────────────────── */
-function UFCPage({ isMobile }) {
+/* ── UFC Page (octagon.sys shell) ────────────────────────────────────────── */
+function UFCPage({ isMobile, onBack }) {
   const [tab, setTab] = useState("upcoming");
+  const [light, setLight] = useState(false);
+  const C = light ? UF_LIGHT : UF;
 
   return (
-    <div>
-      <div style={{ paddingBottom: 20, marginBottom: 24, borderBottom: `1px solid ${T.bd}` }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-          <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>ufc @</span>
-          <h1 style={{ margin: 0, fontSize: isMobile ? 20 : 26, fontWeight: 800, letterSpacing: -0.6, color: T.text }}>
-            fight-prediction-engine
-          </h1>
-          <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}40`, padding: "2px 7px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>
-        </div>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>
-          65.6% cv accuracy · 7,190 fights trained · xgboost + lightgbm · elo ratings · kelly criterion
-        </div>
-      </div>
+    <div
+      className="uf uf-wrap"
+      data-theme={light ? "light" : "dark"}
+      style={{
+        minHeight: "calc(100vh - 0px)",
+        background: C.bg,
+        color: C.fg,
+        fontFamily: SANS,
+        position: "relative",
+      }}
+    >
+      <style>{`
+        .uf-wrap::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
+          background-size: 20px 20px;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .uf[data-theme="light"] .uf-wrap::before,
+        .uf[data-theme="light"].uf-wrap::before {
+          background-image: radial-gradient(rgba(0,0,0,0.02) 1px, transparent 1px);
+        }
+        .fight-row { transition: background 0.15s ease; }
+        .fight-row:hover { background: ${C.elevated}; }
+        @keyframes uf-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+        .breathe { animation: uf-breathe 2.4s ease-in-out infinite; }
+      `}</style>
 
-      <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: `1px solid ${T.bd}` }}>
-        {[["upcoming", "upcoming card"], ["custom", "custom matchup"]].map(([id, lbl]) => (
-          <button key={id} type="button" onClick={() => setTab(id)} style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
-            color: tab === id ? T.text : T.dim,
-            padding: "0 0 10px", marginRight: 24,
-            borderBottom: `2px solid ${tab === id ? T.text : "transparent"}`,
-            marginBottom: -1, transition: "color 150ms",
+      <div style={{
+        position: "relative", zIndex: 1,
+        maxWidth: isMobile ? "100%" : 420,
+        margin: "0 auto",
+        minHeight: "100vh",
+        borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+        borderRight: isMobile ? "none" : `1px solid ${C.border}`,
+        background: C.bg,
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        {/* Top chrome */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 12px", borderBottom: `1px solid ${C.border}`, gap: 8,
+        }}>
+          <button type="button" onClick={onBack} style={{
+            background: "none", border: "none", color: C.muted, fontSize: 12,
+            fontFamily: SANS, padding: "4px 2px", cursor: "pointer",
           }}>
-            {lbl}
+            ← back
           </button>
-        ))}
-      </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button type="button" onClick={() => setLight((v) => !v)} title="Toggle theme" style={{
+              background: "none", border: "none", color: C.muted, fontSize: 14, cursor: "pointer", padding: 4,
+            }}>
+              {light ? "☀" : "☽"}
+            </button>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 99,
+              background: `${C.gold}18`, color: C.gold, border: `1px solid ${C.gold}33`,
+              fontFamily: MONO,
+            }}>
+              Model
+            </span>
+            <span style={{
+              fontSize: 10, fontWeight: 600, letterSpacing: 1, color: C.cyan,
+              opacity: 0.55, fontFamily: MONO,
+            }}>
+              octagon.sys
+            </span>
+          </div>
+        </div>
 
-      {tab === "upcoming" ? <UpcomingCard isMobile={isMobile} /> : <CustomMatchup isMobile={isMobile} />}
+        {/* Tabs */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
+          {[["upcoming", "card"], ["custom", "matchup"]].map(([id, lbl]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              style={{
+                flex: 1, background: "none", border: "none", cursor: "pointer",
+                fontFamily: MONO, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase",
+                color: tab === id ? C.cyan : C.muted,
+                padding: "10px 8px",
+                borderBottom: `2px solid ${tab === id ? C.cyan : "transparent"}`,
+                marginBottom: -1,
+              }}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ flex: 1, overflow: "auto" }}>
+          {tab === "upcoming" ? <UpcomingCard theme={C} /> : <CustomMatchup theme={C} />}
+        </div>
+      </div>
     </div>
   );
 }
@@ -620,7 +786,7 @@ export default function App() {
   const NAV = [["home", "home"], ["projects", "projects"], ["resume", "resume"], ["contact", "contact"]];
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: SANS }}>
+    <div style={{ minHeight: "100vh", background: page === "ufc" ? UF.bg : T.bg, color: T.text, fontFamily: SANS }}>
       <style>{`
         * { box-sizing: border-box; }
         @keyframes fd { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -633,6 +799,10 @@ export default function App() {
         ::placeholder { color: #50507a; }
       `}</style>
 
+      {page === "ufc" ? (
+        <UFCPage isMobile={isMobile} onBack={() => go("home")} />
+      ) : (
+        <>
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header style={{
         position: "sticky", top: 0, zIndex: 100,
@@ -696,9 +866,6 @@ export default function App() {
 
       {/* ── Page ─────────────────────────────────────────────────────────── */}
       <main key={page} style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "44px 20px 90px" : "56px 0 110px", animation: "fd 220ms ease both" }}>
-
-        {/* ═══ UFC ═════════════════════════════════════════════════════════ */}
-        {page === "ufc" && <UFCPage isMobile={isMobile} />}
 
         {/* ═══ HOME ════════════════════════════════════════════════════════ */}
         {page === "home" && (
@@ -893,6 +1060,8 @@ export default function App() {
       <footer style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "20px 20px 44px" : "20px 0 44px", borderTop: `1px solid ${T.bd}` }}>
         <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>© {new Date().getFullYear()} Kyle Suda</div>
       </footer>
+        </>
+      )}
     </div>
   );
 }
