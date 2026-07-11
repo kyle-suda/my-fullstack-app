@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const UFC_API = "https://vibrant-healing-ufc-api-production.up.railway.app";
+const UFC_API = (import.meta.env.VITE_UFC_API || "https://vibrant-healing-ufc-api-production.up.railway.app").replace(/\/$/, "");
 const MONO = `"SF Mono","JetBrains Mono","Fira Code","Consolas",monospace`;
 const SANS = `-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,sans-serif`;
 
@@ -176,7 +176,7 @@ function FightCard({ fight, idx, isMobile }) {
           </div>
           <div style={{ fontFamily: MONO, fontSize: isMobile ? 22 : 26, fontWeight: 700, color: T.red, lineHeight: 1 }}>{rPct.toFixed(1)}%</div>
           <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginTop: 4 }}>{fmtOdds(rPct / 100)}</div>
-          {fight.r_elo && <div style={{ fontFamily: MONO, fontSize: 10, color: T.faint, marginTop: 3, color: "#2a2a40" }}>elo {fight.r_elo}</div>}
+          {fight.r_elo && <div style={{ fontFamily: MONO, fontSize: 10, marginTop: 3, color: "#2a2a40" }}>elo {fight.r_elo}</div>}
         </div>
 
         {/* Bar */}
@@ -312,12 +312,24 @@ function UpcomingCard({ isMobile }) {
   async function load() {
     setLoading(true); setErr(null);
     try {
-      const r = await fetch(`${UFC_API}/next-card`, { signal: AbortSignal.timeout(35000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const r = await fetch(`${UFC_API}/next-card`, { signal: AbortSignal.timeout(90000) });
+      if (!r.ok) {
+        let detail = `HTTP ${r.status}`;
+        try {
+          const body = await r.json();
+          if (body?.message || body?.error) detail = body.message || body.error;
+        } catch { /* ignore non-JSON error bodies */ }
+        throw new Error(detail);
+      }
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setData(d);
-    } catch (e) { setErr(e.message || "Could not load upcoming card"); }
+    } catch (e) {
+      const msg = e.name === "TimeoutError" || e.name === "AbortError"
+        ? "Request timed out — the prediction API may be cold-starting. Try again."
+        : (e.message || "Could not load upcoming card");
+      setErr(msg);
+    }
     finally { setLoading(false); }
   }
 
@@ -385,11 +397,21 @@ function CustomMatchup({ isMobile }) {
       const body = { red_name: rn.trim(), blue_name: bn.trim(), weight_class: wc, is_title_fight: title, scheduled_rounds: rds };
       if (showOdds && ro) body.red_odds  = parseFloat(ro);
       if (showOdds && bo) body.blue_odds = parseFloat(bo);
-      const r = await fetch(`${UFC_API}/predict`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "API error");
+      const r = await fetch(`${UFC_API}/predict`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60000),
+      });
+      let d = {};
+      try { d = await r.json(); } catch { /* empty */ }
+      if (!r.ok) throw new Error(d.error || d.message || `API error (${r.status})`);
       setRes(d);
-    } catch (e) { setErr(e.message); }
+    } catch (e) {
+      setErr(e.name === "TimeoutError" || e.name === "AbortError"
+        ? "Prediction timed out. Try again in a moment."
+        : e.message);
+    }
     finally { setBusy(false); }
   }
 

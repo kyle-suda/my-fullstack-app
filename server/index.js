@@ -13,7 +13,7 @@ const IS_PROD = process.env.NODE_ENV === "production";
 
 // Middleware
 const allowedOrigins = IS_PROD
-  ? [process.env.FRONTEND_URL, "https://kylesuda.com"].filter(Boolean)
+  ? [process.env.FRONTEND_URL, "https://kylesuda.com", "https://www.kylesuda.com"].filter(Boolean)
   : ["http://localhost:5173", "http://localhost:3000"];
 
 app.use(
@@ -25,17 +25,22 @@ app.use(
 );
 app.use(express.json());
 
-// Health check
-app.get("/", (req, res) => {
+// Health checks — do NOT mount on "/" in production (SPA lives there)
+function health(_req, res) {
   res.json({ status: "API is running" });
-});
+}
+app.get("/health", health);
+app.get("/api/health", health);
+if (!IS_PROD) {
+  app.get("/", health);
+}
 
 // Get all users
 app.get("/users", async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       orderBy: { id: "asc" },
-      select: { id: true, email: true, name: true }, // keep payload clean
+      select: { id: true, email: true, name: true },
     });
     res.json(users);
   } catch (err) {
@@ -44,7 +49,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// Create a user (so your "Add user" form can work)
+// Create a user
 app.post("/users", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -68,7 +73,6 @@ app.post("/users", async (req, res) => {
 
     res.status(201).json(user);
   } catch (err) {
-    // Prisma unique constraint violation for email
     if (err && err.code === "P2002") {
       return res.status(409).json({ error: "email already exists" });
     }
