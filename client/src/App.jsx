@@ -1,25 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 
 const UFC_API = (import.meta.env.VITE_UFC_API || "https://vibrant-healing-ufc-api-production.up.railway.app").replace(/\/$/, "");
-const MONO = `"IBM Plex Mono","SF Mono","Menlo",monospace`;
-const SANS = `"DM Sans",system-ui,sans-serif`;
+const MONO = `"IBM Plex Mono","Space Mono",Menlo,monospace`;
+const SANS = `"DM Sans",ui-sans-serif,system-ui,sans-serif`;
 
+/* Portfolio theme — joshabrams.dev inspired */
 const T = {
-  bg:     "#090909",
-  surf:   "#0e0e13",
-  bd:     "rgba(255,255,255,0.08)",
-  bdHi:   "rgba(255,255,255,0.13)",
-  text:   "#e2e2ee",
-  dim:    "#505070",
-  faint:  "#181824",
-  green:  "#4ade80",
-  red:    "#f87171",
-  blue:   "#60a5fa",
+  bg: "#030306",
+  fg: "#e0ddd5",
+  muted: "rgba(224,221,213,0.35)",
+  dim: "rgba(224,221,213,0.22)",
+  faint: "rgba(224,221,213,0.06)",
+  border: "rgba(224,221,213,0.06)",
+  borderHover: "rgba(224,221,213,0.15)",
+  gold: "#c9a96e",
+  live: "#34d399",
+  nav: "rgba(9,9,11,0.9)",
+  // legacy aliases used by older helpers
+  surf: "#11121a",
+  bd: "rgba(224,221,213,0.08)",
+  bdHi: "rgba(224,221,213,0.15)",
+  text: "#e0ddd5",
+  green: "#34d399",
+  red: "#ff3b5c",
+  blue: "#60a5fa",
   yellow: "#fbbf24",
   purple: "#a78bfa",
 };
 
-/* octagon.sys-inspired UFC theme (matches joshabrams.dev/projects/ufc-picks) */
+/* octagon.sys UFC theme */
 const UF = {
   bg: "#0a0b10",
   surface: "#11121a",
@@ -54,21 +63,23 @@ const UF_LIGHT = {
   purple: "#7c3aed",
 };
 
-/* ── Content ─────────────────────────────────────────────────────────────── */
 const CONTENT = {
   name: "Kyle Suda",
-  role: "cybersecurity · full-stack · ml",
+  first: "Kyle",
+  last: "Suda",
+  monogram: "KS",
   tagline: "Building secure apps and prediction systems through hands-on labs, full-stack projects, and real-world security practice.",
+  role: "cybersecurity · full-stack · ml",
   about: [
     "Focused on cybersecurity and full-stack development. I build practical projects while studying security fundamentals, networking, and secure software design.",
     "Especially interested in defensive security, detection engineering, and systems that are secure by design. I also build ML-powered prediction engines.",
   ],
   skills: {
-    lang:     ["Python", "JavaScript", "TypeScript", "SQL"],
-    ml:       ["XGBoost", "LightGBM", "Elo Systems", "Feature Engineering"],
+    lang: ["Python", "JavaScript", "TypeScript", "SQL"],
+    ml: ["XGBoost", "LightGBM", "Elo Systems", "Feature Engineering"],
     security: ["Network Fundamentals", "IDS/IPS", "Wireshark", "Snort"],
-    web:      ["React", "Node.js", "Express", "REST APIs"],
-    infra:    ["Docker", "Railway", "Vercel", "Git"],
+    web: ["React", "Node.js", "Express", "REST APIs"],
+    infra: ["Docker", "Railway", "Vercel", "Git"],
   },
   projects: [
     {
@@ -83,6 +94,7 @@ const CONTENT = {
       id: "ops",
       name: "user-ops-suite",
       live: false,
+      status: "IN-PROGRESS",
       blurb: "Full-stack user dashboard with search, insights, and activity views. List/search/sort/pagination with a clean UI shell and multiple analytics pages.",
       stack: ["React", "Node.js", "Prisma", "PostgreSQL"],
       github: "https://github.com/kyle-suda",
@@ -120,7 +132,6 @@ const CONTENT = {
       school: "University of South Florida",
       program: "Cybersecurity / CS Coursework",
       timeframe: "In progress",
-      notes: ["Networking", "Security Fundamentals", "Programming", "Databases"],
     },
   ],
   contact: {
@@ -136,7 +147,6 @@ const WEIGHT_CLASSES = [
   "Women's Featherweight", "Women's Bantamweight", "Women's Flyweight", "Women's Strawweight",
 ];
 
-/* ── Hooks ───────────────────────────────────────────────────────────────── */
 function useWindowSize() {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => {
@@ -146,6 +156,7 @@ function useWindowSize() {
   }, []);
   return w;
 }
+
 
 /* ── Shared primitives ───────────────────────────────────────────────────── */
 function toAmericanOdds(prob) {
@@ -836,329 +847,317 @@ function UFCPage({ isMobile, onBack }) {
   );
 }
 
-/* ── Contact form ────────────────────────────────────────────────────────── */
-function ContactForm() {
-  const [nm,    setNm]    = useState("");
-  const [em,    setEm]    = useState("");
-  const [msg,   setMsg]   = useState("");
-  const [toast, setToast] = useState("");
 
-  const inp = { width: "100%", padding: "10px 14px", borderRadius: 7, border: `1px solid ${T.bd}`, background: T.surf, color: T.text, outline: "none", fontFamily: SANS, fontSize: 14, boxSizing: "border-box" };
-
-  function submit(e) {
-    e.preventDefault();
-    if (!nm.trim() || !em.includes("@") || msg.trim().length < 10) {
-      setToast("Name, valid email, and message (10+ chars) required.");
-      setTimeout(() => setToast(""), 2400); return;
-    }
-    const s = encodeURIComponent(`Portfolio message from ${nm.trim()}`);
-    const b = encodeURIComponent(`Name: ${nm.trim()}\nEmail: ${em.trim()}\n\n${msg.trim()}`);
-    window.location.href = `mailto:${CONTENT.contact.email}?subject=${s}&body=${b}`;
-    setToast("Opening email app…"); setTimeout(() => setToast(""), 1600);
-  }
-
+function SectionHead({ children }) {
   return (
-    <form onSubmit={submit} style={{ display: "grid", gap: 10, marginTop: 28 }}>
-      <Lbl>send a message</Lbl>
-      <input style={inp} placeholder="Your name"  value={nm}  onChange={(e) => setNm(e.target.value)} />
-      <input style={inp} placeholder="Your email" value={em}  onChange={(e) => setEm(e.target.value)} />
-      <textarea style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="What would you like to talk about?" value={msg} onChange={(e) => setMsg(e.target.value)} />
-      <button type="submit" style={{ padding: "11px 20px", borderRadius: 7, border: `1px solid ${T.bd}`, background: "none", color: T.text, fontFamily: MONO, fontSize: 13, cursor: "pointer", textAlign: "left", letterSpacing: 0.5 }}>
-        → send
-      </button>
-      {toast && <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{toast}</div>}
-    </form>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+      <span style={{
+        fontFamily: MONO, fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
+        color: T.dim, flexShrink: 0,
+      }}>
+        {children}
+      </span>
+      <div style={{ flex: 1, height: 1, background: T.faint }} />
+    </div>
   );
 }
 
-/* ── Main App ────────────────────────────────────────────────────────────── */
-export default function App() {
-  const [page,     setPage]     = useState("home");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const W        = useWindowSize();
-  const isMobile = W < 800;
+function PixelIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="18" height="18" style={{ imageRendering: "pixelated", color: "rgba(224,221,213,0.2)" }} aria-hidden>
+      <rect x="3" y="2" width="4" height="2" fill="currentColor" />
+      <rect x="9" y="2" width="4" height="2" fill="currentColor" />
+      <rect x="2" y="4" width="5" height="2" fill="currentColor" opacity="0.8" />
+      <rect x="9" y="4" width="5" height="2" fill="currentColor" opacity="0.8" />
+      <rect x="4" y="6" width="8" height="2" fill="currentColor" />
+      <rect x="5" y="8" width="6" height="2" fill="currentColor" opacity="0.8" />
+      <rect x="6" y="10" width="4" height="2" fill="currentColor" opacity="0.6" />
+      <rect x="5" y="12" width="2" height="2" fill="currentColor" opacity="0.4" />
+      <rect x="9" y="12" width="2" height="2" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
 
-  function go(p) { setPage(p); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function ProjectCard({ project, onOpen, isMobile }) {
+  const status = project.live ? "LIVE" : (project.status || null);
+  const interactive = Boolean(project.page || project.github);
 
-  const NAV = [["home", "home"], ["projects", "projects"], ["resume", "resume"], ["contact", "contact"]];
+  function activate() {
+    if (project.page) onOpen(project.page);
+    else if (project.github) window.open(project.github, "_blank", "noreferrer");
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: page === "ufc" ? UF.bg : T.bg, color: T.text, fontFamily: SANS }}>
+    <button
+      type="button"
+      onClick={interactive ? activate : undefined}
+      className="proj-card"
+      style={{
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        background: "transparent",
+        border: `1px solid ${T.border}`,
+        borderRadius: 2,
+        padding: isMobile ? 20 : 24,
+        cursor: interactive ? "pointer" : "default",
+        transition: "border-color 300ms, background 300ms",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: isMobile ? 0 : 24 }}>
+        {!isMobile && (
+          <div style={{ marginTop: 4, flexShrink: 0 }}><PixelIcon /></div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+            <h3 className="proj-title" style={{
+              margin: 0, fontSize: 15, fontWeight: 600, color: T.fg, transition: "color 300ms",
+            }}>
+              {project.id} @ {project.name}
+            </h3>
+            {status && (
+              <span style={{
+                fontFamily: MONO, fontSize: 8, padding: "2px 6px", letterSpacing: 1,
+                color: project.live ? T.live : T.gold,
+                background: project.live ? "rgba(52,211,153,0.06)" : "rgba(201,169,110,0.08)",
+                border: `1px solid ${project.live ? "rgba(52,211,153,0.15)" : "rgba(201,169,110,0.2)"}`,
+                borderRadius: 1,
+              }}>
+                {status}
+              </span>
+            )}
+          </div>
+          <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.65, color: T.muted }}>
+            {project.blurb}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {project.stack.map((t) => (
+              <span key={t} style={{
+                fontFamily: MONO, fontSize: 10, padding: "2px 8px",
+                color: T.dim, border: `1px solid ${T.faint}`, borderRadius: 1,
+              }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function PortfolioHome({ isMobile, onOpenUfc }) {
+  function scrollTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  return (
+    <div style={{ minHeight: "100dvh", background: T.bg, color: T.fg, fontFamily: SANS, position: "relative" }}>
       <style>{`
-        * { box-sizing: border-box; }
-        @keyframes fd { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        button:not([disabled]):hover { opacity: 0.75; }
-        a:hover { opacity: 0.70; }
-        select option { background: #0e0e13; color: #e2e2ee; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 99px; }
-        ::placeholder { color: #50507a; }
+        .site-wrap::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background-image: radial-gradient(rgba(224,221,213,0.035) 1px, transparent 1px);
+          background-size: 22px 22px;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .proj-card:hover {
+          border-color: ${T.borderHover} !important;
+          background: rgba(224,221,213,0.02) !important;
+        }
+        .proj-card:hover .proj-title { color: ${T.gold} !important; }
+        .nav-link:hover { color: ${T.fg} !important; }
+        a.foot-link:hover { color: ${T.fg} !important; }
+        @keyframes fd { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
       `}</style>
 
-      {page === "ufc" ? (
-        <UFCPage isMobile={isMobile} onBack={() => go("home")} />
-      ) : (
-        <>
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: `${T.bg}f0`, backdropFilter: "blur(18px)",
-        borderBottom: `1px solid ${T.bd}`,
-      }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "15px 20px" : "0 0", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: isMobile ? "auto" : 54 }}>
-          <button type="button" onClick={() => go("home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontWeight: 800, fontSize: 15, padding: 0, letterSpacing: -0.3 }}>
-            Kyle Suda
+      <div className="site-wrap" style={{ position: "relative", zIndex: 1 }}>
+        <nav style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: isMobile ? "0 24px" : "0 40px", height: 56,
+          background: T.nav, backdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(224,221,213,0.04)",
+        }}>
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: 500, letterSpacing: "-0.02em", color: T.fg, padding: 0,
+          }}>
+            {CONTENT.monogram}
           </button>
-
-          {!isMobile && (
-            <nav style={{ display: "flex", gap: 22, alignItems: "center" }}>
-              {NAV.map(([id, lbl]) => (
-                <button key={id} type="button" onClick={() => go(id)} style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
-                  color: page === id ? T.text : T.dim, padding: 0,
-                }}>
-                  {lbl}
-                </button>
-              ))}
-              <span style={{ color: T.faint, userSelect: "none" }}>·</span>
-              <button type="button" onClick={() => go("ufc")} style={{
-                background: "none", cursor: "pointer",
-                border: `1px solid ${page === "ufc" ? `${T.red}55` : T.bd}`,
-                borderRadius: 6, padding: "6px 12px",
-                fontFamily: MONO, fontSize: 12, letterSpacing: 0.5,
-                color: page === "ufc" ? T.red : T.dim,
-                transition: "border-color 150ms, color 150ms",
-              }}>
-                ufc predictor
-              </button>
-            </nav>
-          )}
-
-          {isMobile && (
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" onClick={() => go("ufc")} style={{ background: "none", border: `1px solid ${T.red}44`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", fontFamily: MONO, fontSize: 11, color: T.red }}>ufc</button>
-              <button type="button" onClick={() => setMenuOpen((m) => !m)} style={{ background: "none", border: `1px solid ${T.bd}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: T.dim, fontFamily: MONO, fontSize: 14 }}>
-                {menuOpen ? "×" : "≡"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {isMobile && menuOpen && (
-          <div style={{ borderTop: `1px solid ${T.bd}`, padding: "10px 20px 14px", background: T.bg, display: "grid", gap: 0 }}>
-            {NAV.map(([id, lbl]) => (
-              <button key={id} type="button" onClick={() => go(id)} style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: MONO, fontSize: 13, color: page === id ? T.text : T.dim,
-                padding: "9px 0", textAlign: "left", borderBottom: `1px solid ${T.faint}`,
-              }}>
-                {lbl}
-              </button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 24, fontFamily: MONO, fontSize: 11, color: "rgba(224,221,213,0.3)" }}>
+            <button type="button" className="nav-link" onClick={() => scrollTo("work")} style={{
+              background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
+            }}>work</button>
+            <button type="button" className="nav-link" onClick={() => scrollTo("about")} style={{
+              background: "none", border: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, transition: "color 300ms",
+            }}>about</button>
           </div>
-        )}
-      </header>
+        </nav>
 
-      {/* ── Page ─────────────────────────────────────────────────────────── */}
-      <main key={page} style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "44px 20px 90px" : "56px 0 110px", animation: "fd 220ms ease both" }}>
+        <main style={{
+          maxWidth: 920, margin: "0 auto",
+          padding: isMobile ? "120px 24px 80px" : "140px 40px 100px",
+          animation: "fd 280ms ease both",
+        }}>
+          {/* Hero */}
+          <section style={{ marginBottom: isMobile ? 72 : 96 }}>
+            <h1 style={{
+              margin: "0 0 32px",
+              fontSize: "clamp(3rem, 8vw, 6.5rem)",
+              fontWeight: 700,
+              lineHeight: 0.92,
+              letterSpacing: "-0.04em",
+              color: T.fg,
+            }}>
+              {CONTENT.first}<br />
+              <span style={{ color: "rgba(224,221,213,0.4)" }}>{CONTENT.last}</span>
+            </h1>
+            <p style={{
+              margin: "0 0 14px", maxWidth: 440,
+              fontSize: isMobile ? 15 : 17, lineHeight: 1.55, color: T.muted,
+            }}>
+              {CONTENT.tagline}
+            </p>
+            <p style={{ margin: 0, fontFamily: MONO, fontSize: 12, color: T.dim }}>
+              {CONTENT.role}
+            </p>
+          </section>
 
-        {/* ═══ HOME ════════════════════════════════════════════════════════ */}
-        {page === "home" && (
-          <div style={{ display: "grid", gap: 60 }}>
-
-            {/* Hero */}
-            <div>
-              <h1 style={{ margin: "0 0 6px", fontSize: isMobile ? 34 : 46, fontWeight: 800, letterSpacing: -1.4, color: T.text, lineHeight: 1 }}>
-                {CONTENT.name}
-              </h1>
-              <div style={{ fontFamily: MONO, fontSize: 12, color: T.dim, marginBottom: 20, letterSpacing: 0.5 }}>
-                {CONTENT.role}
-              </div>
-              <div style={{ fontSize: 14, color: T.dim, lineHeight: 1.8, maxWidth: 540 }}>
-                {CONTENT.tagline}
-              </div>
-              <div style={{ display: "flex", gap: 18, marginTop: 22, flexWrap: "wrap", alignItems: "center" }}>
-                <a href={`mailto:${CONTENT.contact.email}`} style={{ fontFamily: MONO, fontSize: 12, color: T.text, textDecoration: "none", borderBottom: `1px solid ${T.dim}` }}>email</a>
-                <a href={CONTENT.contact.github}   target="_blank" rel="noreferrer" style={{ fontFamily: MONO, fontSize: 12, color: T.dim, textDecoration: "none", borderBottom: `1px solid ${T.faint}` }}>github</a>
-                <a href={CONTENT.contact.linkedin} target="_blank" rel="noreferrer" style={{ fontFamily: MONO, fontSize: 12, color: T.dim, textDecoration: "none", borderBottom: `1px solid ${T.faint}` }}>linkedin</a>
-                <button type="button" onClick={() => go("ufc")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: MONO, fontSize: 12, color: T.red, padding: 0, borderBottom: `1px solid ${T.red}55` }}>
-                  ufc predictor →
-                </button>
-              </div>
-            </div>
-
-            {/* Projects */}
-            <div>
-              <Lbl>projects</Lbl>
-              {CONTENT.projects.map((p, i) => (
-                <div key={p.id} style={{ borderBottom: `1px solid ${T.bd}`, paddingBottom: 22, marginBottom: 22, animation: `fd 200ms ease ${i * 55}ms both` }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{p.id} @</span>
-                    <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.3 }}>{p.name}</span>
-                    {p.live && <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}44`, padding: "1px 6px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>}
-                  </div>
-                  <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.7, maxWidth: 580, marginBottom: 10 }}>{p.blurb}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    {p.stack.map((t) => <span key={t} style={{ fontFamily: MONO, fontSize: 10, color: "#30304a", letterSpacing: 0.2 }}>{t}</span>)}
-                    {p.page && <button type="button" onClick={() => go(p.page)} style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, background: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "3px 10px", cursor: "pointer" }}>open →</button>}
-                    {p.github && <a href={p.github} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, textDecoration: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "3px 10px" }}>github →</a>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* About + Skills */}
-            <div>
-              <Lbl>about</Lbl>
-              {CONTENT.about.map((p, i) => (
-                <div key={i} style={{ fontSize: 13, color: T.dim, lineHeight: 1.8, marginBottom: 10 }}>{p}</div>
-              ))}
-              <div style={{ marginTop: 24, display: "grid", gap: 10 }}>
-                {Object.entries(CONTENT.skills).map(([cat, items]) => (
-                  <div key={cat} style={{ display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 64, flexShrink: 0 }}>{cat}</span>
-                    <span style={{ fontSize: 13, color: T.dim }}>{items.join(" · ")}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Experience */}
-            <div>
-              <Lbl>experience</Lbl>
-              <div style={{ display: "grid", gap: 22 }}>
-                {CONTENT.experience.map((e) => (
-                  <div key={e.role}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                      <div>
-                        <span style={{ fontWeight: 700, fontSize: 14 }}>{e.role}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {e.org}</span>
-                      </div>
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{e.timeframe}</span>
-                    </div>
-                    {e.points.map((pt) => <div key={pt} style={{ fontSize: 12, color: T.dim, paddingLeft: 12, borderLeft: `2px solid ${T.faint}`, marginBottom: 4, lineHeight: 1.6 }}>{pt}</div>)}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Education */}
-            <div>
-              <Lbl>education</Lbl>
-              {CONTENT.education.map((ed) => (
-                <div key={ed.school} style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{ed.school}</span>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {ed.program}</span>
-                  </div>
-                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{ed.timeframe}</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
-        )}
-
-        {/* ═══ PROJECTS ════════════════════════════════════════════════════ */}
-        {page === "projects" && (
-          <div>
-            <h2 style={{ margin: "0 0 36px", fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>projects</h2>
-            {CONTENT.projects.map((p, i) => (
-              <div key={p.id} style={{ borderBottom: `1px solid ${T.bd}`, paddingBottom: 26, marginBottom: 26, animation: `fd 200ms ease ${i * 55}ms both` }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: MONO, fontSize: 12, color: T.dim }}>{p.id} @</span>
-                  <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.4 }}>{p.name}</span>
-                  {p.live && <span style={{ fontFamily: MONO, fontSize: 9, color: T.green, border: `1px solid ${T.green}44`, padding: "2px 7px", borderRadius: 4, letterSpacing: 0.8 }}>LIVE</span>}
-                </div>
-                <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.75, maxWidth: 580, marginBottom: 14 }}>{p.blurb}</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  {p.stack.map((t) => <span key={t} style={{ fontFamily: MONO, fontSize: 10, color: T.dim, background: T.surf, border: `1px solid ${T.bd}`, padding: "3px 8px", borderRadius: 5 }}>{t}</span>)}
-                  {p.page   && <button type="button" onClick={() => go(p.page)} style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.text, background: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "5px 14px", cursor: "pointer" }}>open →</button>}
-                  {p.github && <a href={p.github} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", fontFamily: MONO, fontSize: 11, color: T.dim, textDecoration: "none", border: `1px solid ${T.bd}`, borderRadius: 5, padding: "5px 14px" }}>github →</a>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ═══ RESUME ══════════════════════════════════════════════════════ */}
-        {page === "resume" && (
-          <div style={{ display: "grid", gap: 44 }}>
-            <h2 style={{ margin: 0, fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>resume</h2>
-
-            <div>
-              <Lbl>skills</Lbl>
-              <div style={{ display: "grid", gap: 10 }}>
-                {Object.entries(CONTENT.skills).map(([cat, items]) => (
-                  <div key={cat} style={{ display: "flex", gap: 16, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 64, flexShrink: 0 }}>{cat}</span>
-                    <span style={{ fontSize: 13, color: T.dim }}>{items.join(" · ")}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Lbl>experience</Lbl>
-              <div style={{ display: "grid", gap: 24 }}>
-                {CONTENT.experience.map((e) => (
-                  <div key={e.role}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                      <div>
-                        <span style={{ fontWeight: 700, fontSize: 14 }}>{e.role}</span>
-                        <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {e.org}</span>
-                      </div>
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{e.timeframe}</span>
-                    </div>
-                    {e.points.map((pt) => <div key={pt} style={{ fontSize: 13, color: T.dim, paddingLeft: 12, borderLeft: `2px solid ${T.faint}`, marginBottom: 5, lineHeight: 1.65 }}>{pt}</div>)}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Lbl>education</Lbl>
-              {CONTENT.education.map((ed) => (
-                <div key={ed.school} style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{ed.school}</span>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginLeft: 10 }}>· {ed.program}</span>
-                  </div>
-                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{ed.timeframe}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══ CONTACT ═════════════════════════════════════════════════════ */}
-        {page === "contact" && (
-          <div>
-            <h2 style={{ margin: "0 0 32px", fontSize: isMobile ? 26 : 32, fontWeight: 800, letterSpacing: -0.8 }}>contact</h2>
+          {/* Projects */}
+          <section id="work" style={{ marginBottom: isMobile ? 72 : 96, scrollMarginTop: 80 }}>
+            <SectionHead>Projects</SectionHead>
             <div style={{ display: "grid", gap: 12 }}>
-              {[
-                { lbl: "email",    href: `mailto:${CONTENT.contact.email}`,       val: CONTENT.contact.email },
-                { lbl: "github",   href: CONTENT.contact.github,                   val: "github.com/kyle-suda" },
-                { lbl: "linkedin", href: CONTENT.contact.linkedin,                 val: "linkedin.com/in/kylesuda" },
-              ].map((l) => (
-                <div key={l.lbl} style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
-                  <span style={{ fontFamily: MONO, fontSize: 11, color: T.dim, minWidth: 60 }}>{l.lbl}</span>
-                  <a href={l.href} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: T.text, textDecoration: "none", borderBottom: `1px solid ${T.dim}` }}>{l.val}</a>
+              {CONTENT.projects.map((p) => (
+                <ProjectCard key={p.id} project={p} isMobile={isMobile} onOpen={(page) => page === "ufc" && onOpenUfc()} />
+              ))}
+            </div>
+          </section>
+
+          {/* About */}
+          <section id="about" style={{ marginBottom: isMobile ? 72 : 96, scrollMarginTop: 80 }}>
+            <SectionHead>About</SectionHead>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 280px",
+              gap: isMobile ? 36 : 64,
+            }}>
+              <div>
+                {CONTENT.about.map((p, i) => (
+                  <p key={i} style={{ margin: i ? "14px 0 0" : 0, fontSize: 14, lineHeight: 1.75, color: T.muted }}>
+                    {p}
+                  </p>
+                ))}
+              </div>
+              <div style={{ display: "grid", gap: 20 }}>
+                {Object.entries(CONTENT.skills).map(([cat, items]) => (
+                  <div key={cat}>
+                    <div style={{
+                      fontFamily: MONO, fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase",
+                      color: T.dim, marginBottom: 8,
+                    }}>
+                      {cat}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {items.map((item) => (
+                        <span key={item} style={{ fontSize: 12, color: T.muted }}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Experience */}
+          <section style={{ marginBottom: isMobile ? 72 : 96 }}>
+            <SectionHead>Experience</SectionHead>
+            <div style={{ display: "grid", gap: 28 }}>
+              {CONTENT.experience.map((e) => (
+                <div key={e.role}>
+                  <div style={{
+                    display: "flex", flexDirection: isMobile ? "column" : "row",
+                    justifyContent: "space-between", gap: isMobile ? 4 : 16, marginBottom: 8,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: T.fg }}>{e.role}</div>
+                      <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginTop: 3 }}>{e.org}</div>
+                    </div>
+                    <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim, flexShrink: 0 }}>{e.timeframe}</div>
+                  </div>
+                  {e.points.map((pt) => (
+                    <p key={pt} style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.6, color: T.muted }}>{pt}</p>
+                  ))}
                 </div>
               ))}
             </div>
-            <ContactForm />
-          </div>
-        )}
-      </main>
+          </section>
 
-      <footer style={{ maxWidth: 720, margin: "0 auto", padding: isMobile ? "20px 20px 44px" : "20px 0 44px", borderTop: `1px solid ${T.bd}` }}>
-        <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>© {new Date().getFullYear()} Kyle Suda</div>
-      </footer>
-        </>
-      )}
+          {/* Education */}
+          <section style={{ marginBottom: isMobile ? 56 : 72 }}>
+            <SectionHead>Education</SectionHead>
+            {CONTENT.education.map((ed) => (
+              <div key={ed.school} style={{
+                display: "flex", flexDirection: isMobile ? "column" : "row",
+                justifyContent: "space-between", gap: 6,
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.fg }}>{ed.program}</div>
+                  <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim, marginTop: 3 }}>{ed.school}</div>
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 11, color: T.dim }}>{ed.timeframe}</div>
+              </div>
+            ))}
+          </section>
+
+          <footer style={{
+            display: "flex", flexDirection: isMobile ? "column" : "row",
+            justifyContent: "space-between", gap: 16,
+            paddingTop: 28, borderTop: `1px solid ${T.faint}`,
+            fontFamily: MONO, fontSize: 11, color: T.dim,
+          }}>
+            <span>{CONTENT.name.toLowerCase()} © {new Date().getFullYear()}</span>
+            <div style={{ display: "flex", gap: 16 }}>
+              <a className="foot-link" href={`mailto:${CONTENT.contact.email}`} style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>email</a>
+              <a className="foot-link" href={CONTENT.contact.github} target="_blank" rel="noreferrer" style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>github</a>
+              <a className="foot-link" href={CONTENT.contact.linkedin} target="_blank" rel="noreferrer" style={{ color: T.dim, textDecoration: "none", transition: "color 300ms" }}>linkedin</a>
+            </div>
+          </footer>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [page, setPage] = useState("home");
+  const W = useWindowSize();
+  const isMobile = W < 800;
+
+  function go(p) {
+    setPage(p);
+    window.scrollTo(0, 0);
+  }
+
+  return (
+    <div style={{ minHeight: "100dvh", background: page === "ufc" ? UF.bg : T.bg }}>
+      <style>{`
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; background: ${T.bg}; }
+        button:not([disabled]):hover { opacity: 0.9; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.35); border-radius: 99px; }
+        ::placeholder { color: rgba(224,221,213,0.25); }
+        select option { background: #11121a; color: #e0ddd5; }
+      `}</style>
+
+      {page === "ufc"
+        ? <UFCPage isMobile={isMobile} onBack={() => go("home")} />
+        : <PortfolioHome isMobile={isMobile} onOpenUfc={() => go("ufc")} />}
     </div>
   );
 }
