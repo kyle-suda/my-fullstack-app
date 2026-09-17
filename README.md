@@ -41,6 +41,11 @@ npx prisma migrate dev
 npm run dev
 ```
 
+The `/users` API is available without a key during local development. In
+production it is disabled by default. To enable it, set `ENABLE_USER_API=true`
+and configure a long, random `USER_API_KEY`; callers must provide that value in
+the `X-API-Key` header. Never place this key in browser-side code.
+
 ### UFC API
 
 ```bash
@@ -65,3 +70,24 @@ Root commands:
 npm run build   # build client + prisma generate
 npm start       # migrate + start Express (needs DATABASE_URL)
 ```
+
+## Security
+
+- Local and production secrets belong in environment variables; `.env` files
+  are excluded from Git.
+- The production user API is disabled by default and requires an API key when
+  enabled.
+- The API applies request-size limits, security headers, CORS restrictions, and
+  rate limiting to the optional user routes.
+
+## Data Attribution
+
+Fight data is derived from the [Ultimate UFC Dataset by mdabbert on
+Kaggle](https://www.kaggle.com/datasets/mdabbert/ultimate-ufc-dataset), licensed
+under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The data is
+processed and transformed for feature engineering, model training, and
+prediction in this project.
+
+The dataset license applies to the dataset, not automatically to this project's
+source code. No separate open-source license is granted for the source code
+unless a `LICENSE` file is added.

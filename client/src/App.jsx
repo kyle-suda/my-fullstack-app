@@ -337,7 +337,7 @@ function FighterSearch({ value, onChange, placeholder, accent, theme }) {
         setOpen(true);
       } catch { setSuggs([]); } finally { setBusy(false); }
     }, 220);
-  }, [query]);
+  }, [query, value]);
 
   useEffect(() => { setQuery(value || ""); }, [value]);
 
