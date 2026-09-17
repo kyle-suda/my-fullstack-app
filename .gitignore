@@ -17,6 +17,9 @@
 # logs
 **/*.log
 
+# local Git backup bundles
+*.bundle
+
 # OS / editor
 .DS_Store
 .vscode
